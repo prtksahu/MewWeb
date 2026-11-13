@@ -8,9 +8,11 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,300..500&family=Hanken+Grotesk:wght@400;500&display=swap">
 <style>
 /* Layout: four screens on one 12-column wrap with equal left and right edges.
-   Hero, research, path, closing garden. Ink follows the pointer underneath the
-   cards; fireworks and fireflies draw above them. The accent (--acc) is set by
-   script to the colour of the last firework, and the hero flower matches it.
+   Hero, research, path, closing garden. Behind them sits a fixed night scene:
+   sky, a glow on the horizon, hills, vines and drifting petals. Ink follows the
+   pointer underneath the cards; fireworks and fireflies draw above them. The
+   accent (--acc) is set by script to the colour of the last firework, and the
+   hero flower matches it. The résumé opens as one sheet over the page.
    Single dark look by choice: the brief asks for a black background. */
 @property --acc { syntax: "<color>"; inherits: true; initial-value: #e8173f; }
 @property --acc-hi { syntax: "<color>"; inherits: true; initial-value: #ff5c76; }
@@ -58,8 +60,13 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 .skip:focus { top: calc(12px + env(safe-area-inset-top, 0px)); }
 
 /* ---------- fixed layers ---------- */
-#stars, #ink, #light { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-#stars { z-index: 0; }
+#stars, #glow, #flora, #ink, #light { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#stars, #glow, #flora { z-index: 0; }
+#glow {                               /* the last firework's colour, left hanging over the horizon and round the moon */
+  background:
+    radial-gradient(95% 42% at 50% 100%, color-mix(in srgb, var(--acc) 20%, transparent), transparent 72%),
+    radial-gradient(44% 36% at 92% 10%, color-mix(in srgb, var(--acc) 7%, transparent), transparent 72%);
+}
 #ink { z-index: 1; }
 #light { z-index: 6; }
 main, .closing { position: relative; z-index: 2; }
@@ -295,15 +302,33 @@ h3 { font: 500 1.25rem/1.3 var(--sans); letter-spacing: -.01em; color: var(--ink
 .statement span.lit { color: var(--ink); }
 .closing .grid { margin-top: clamp(40px, 7vh, 72px); }
 .closing .card { gap: 12px; align-items: flex-start; }
-.closing .card .btn { margin-top: 12px; }
+.closing .card p { margin-bottom: 12px; }
+.closing .card .btn { margin-top: auto; }
+@media (min-width: 720px) and (max-width: 1023px) { .closing .c4 { grid-column: span 6; } .closing .cvcard { grid-column: span 12; } }
+
+/* the résumé card: a small sheet that straightens and fills in when pointed at */
+.cvcard h3, .cvcard p { max-width: calc(100% - 100px); }
+.mini {
+  position: absolute; right: 28px; top: 24px; width: 76px; height: 100px; padding: 11px 9px;
+  display: grid; grid-template-columns: 1.7fr 1fr; gap: 5px 6px; align-content: start;
+  border-radius: 6px; border: 1px solid rgba(246, 241, 234, .18); background: rgba(246, 241, 234, .05);
+  transform: rotate(5deg); transition: transform .4s cubic-bezier(.2, .8, .2, 1), border-color .25s;
+}
+.mini i { height: 3px; border-radius: 2px; background: rgba(246, 241, 234, .2); transition: background .3s; }
+.mini i:first-child { grid-column: 1 / -1; width: 64%; height: 5px; margin-bottom: 3px; background: var(--acc-hi); }
+.mini i:nth-child(4n) { width: 70%; }
+.cvcard:hover .mini { transform: translateY(-4px); border-color: color-mix(in srgb, var(--acc-hi) 75%, transparent); }
+.cvcard:hover .mini i:not(:first-child) { background: rgba(246, 241, 234, .5); }
+.cvcard:hover .mini i:nth-child(n+6) { transition-delay: .08s; }
+.cvcard:hover .mini i:nth-child(n+10) { transition-delay: .16s; }
 .legal { margin-top: 28px; font-size: .875rem; color: var(--muted); }
 #land { display: block; width: 100%; height: 200px; margin-top: auto; background: linear-gradient(to top, #04120a, transparent 70%); }
 
-main, .closing .wrap, .nav { transition: opacity 1.2s ease; }
+main, .closing .wrap, .nav { transition: opacity .6s ease; }
 body.show main, body.show .closing .wrap, body.show .nav { opacity: .06; pointer-events: none; }
 #thanks {
   position: fixed; inset: 0; z-index: 7; display: grid; place-content: center; gap: 12px;
-  padding: 24px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 1.8s ease;
+  padding: 24px; text-align: center; pointer-events: none; opacity: 0; transition: opacity 1s ease;
 }
 #thanks.on { opacity: 1; }
 #thanks p {
@@ -317,6 +342,71 @@ body.show main, body.show .closing .wrap, body.show .nav { opacity: .06; pointer
 }
 body:not(.show) #endshow { display: none; }
 
+/* ---------- résumé: the whole CV as one sheet over the page ---------- */
+html.reading { overflow: hidden; }
+.cv {
+  position: fixed; inset: 0; z-index: 7; background: rgba(0, 0, 0, .8);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  opacity: 0; transition: opacity .28s ease;
+}
+.cv[hidden] { display: none; }
+.cv.on { opacity: 1; }
+.cv__scroll {
+  position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.cv__close {
+  position: absolute; z-index: 1; margin: 0; background: rgba(0, 0, 0, .88);
+  top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(30px + env(safe-area-inset-right, 0px));
+}
+.cv__sheet {
+  max-width: 1280px; margin-inline: auto; padding: clamp(20px, 2.6vw, 32px) clamp(20px, 3vw, 40px); border-radius: var(--r);
+  background: #0e0b0b; border: 1px solid color-mix(in srgb, var(--acc-hi) 30%, var(--line));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .8), 0 0 110px color-mix(in srgb, var(--acc) 12%, transparent);
+  font-size: .875rem; line-height: 1.45;
+  transform: translateY(18px) scale(.985); transition: transform .45s cubic-bezier(.2, .8, .2, 1);
+}
+.cv.on .cv__sheet { transform: none; }
+.cv__head { padding-right: 104px; }
+.cv__head h2 { font-size: clamp(1.875rem, 3.4vw, 2.75rem); }
+.cv__role { margin-top: 6px; font-size: 1.0625rem; color: var(--acc-hi); }
+.cv__contact { list-style: none; padding: 0; margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 0; color: var(--text); }
+.cv__contact li:not(:last-child)::after { content: "\00b7"; margin-inline: 10px; color: var(--muted); }
+.cv__contact a { text-decoration-color: color-mix(in srgb, var(--acc-hi) 70%, transparent); text-underline-offset: 3px; }
+.cv__contact a:hover { color: var(--ink); }
+.cv__body {
+  display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 0 clamp(28px, 4vw, 56px);
+  margin-top: 14px; border-top: 1px solid var(--line);
+}
+.cv section {
+  padding-top: 14px; opacity: 0; transform: translateY(12px);
+  transition: opacity .45s ease calc(var(--i) * 60ms + 90ms), transform .55s cubic-bezier(.2, .8, .2, 1) calc(var(--i) * 60ms + 90ms);
+}
+.cv.on section { opacity: 1; transform: none; }
+.cv h3 { margin-bottom: 8px; font: italic 340 1.375rem/1.2 var(--display); letter-spacing: -.01em; color: var(--acc-hi); }
+.cv h4 { margin: 0; font: 500 1rem/1.35 var(--sans); color: var(--ink); }
+.cv__entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 16px; align-items: baseline; }
+.cv__entry + .cv__entry { margin-top: 12px; }
+.cv__what { font-style: italic; }
+.cv__meta { font-size: .8125rem; color: var(--muted); text-align: right; }
+.cv__note { margin-top: 2px; font-size: .8125rem; color: var(--muted); }
+.cv__pts { list-style: none; padding: 0; margin-top: 7px; display: grid; gap: 4px; }
+.cv__pts li { position: relative; padding-left: 17px; }
+.cv__pts li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--acc-hi); }
+.cv__pts + .cv__entry { margin-top: 10px; }
+.cv__side .cv__entry { grid-template-columns: minmax(0, 1fr); }
+.cv__side .cv__meta { text-align: left; }
+.cv__side .cv__pts { margin-top: 5px; }
+.cv__skills div + div { margin-top: 8px; }
+.cv__skills dt { font-weight: 500; color: var(--ink); }
+@media (max-width: 859px) {
+  .cv__body { grid-template-columns: minmax(0, 1fr); }
+  .cv__entry { grid-template-columns: minmax(0, 1fr); }
+  .cv__meta { text-align: left; }
+  .cv__contact { flex-direction: column; }
+  .cv__contact li::after { display: none; }
+}
+
 html.still [data-motion] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
@@ -325,6 +415,8 @@ html.still [data-motion] { display: none; }
 
 <a class="skip" href="#research">Skip to the research</a>
 <canvas id="stars" aria-hidden="true"></canvas>
+<div id="glow" aria-hidden="true"></div>
+<canvas id="flora" aria-hidden="true"></canvas>
 <canvas id="ink" aria-hidden="true"></canvas>
 
 <header class="nav">
@@ -333,6 +425,7 @@ html.still [data-motion] { display: none; }
     <nav class="nav__links" aria-label="Sections">
       <a href="#research">Research</a>
       <a href="#path">Path</a>
+      <a href="#resume" data-cv>Résumé</a>
       <a href="#contact">Contact</a>
     </nav>
     <button class="ghost" id="pause" type="button" aria-pressed="false" data-motion>Pause motion</button>
@@ -486,15 +579,21 @@ html.still [data-motion] { display: none; }
   <div class="wrap">
     <h2 class="statement">Next, I'm starting research on the security and privacy of integrated sensing and communication, where the radio signals that carry data also sense the people and objects around them.</h2>
     <div class="grid">
-      <article class="card c6">
+      <article class="card c4 cvcard" data-cv>
+        <span class="mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <h3>The whole résumé</h3>
+        <p>Education, research, work and skills on one page.</p>
+        <a class="btn btn--solid" href="#resume">Open the résumé</a>
+      </article>
+      <article class="card c4">
+        <h3>Find me on LinkedIn</h3>
+        <p>linkedin.com/in/prtksahu</p>
+        <a class="btn btn--line" href="https://www.linkedin.com/in/prtksahu" target="_blank" rel="noopener">Open LinkedIn</a>
+      </article>
+      <article class="card c4">
         <h3>Away from the desk</h3>
         <p>I love nature and I love fireworks. This page is both.</p>
         <button class="btn btn--line" id="show" type="button" data-motion>Launch the fireworks</button>
-      </article>
-      <article class="card c6">
-        <h3>Find me on LinkedIn</h3>
-        <p>linkedin.com/in/prtksahu</p>
-        <a class="btn btn--solid" href="https://www.linkedin.com/in/prtksahu" target="_blank" rel="noopener">Open LinkedIn</a>
       </article>
     </div>
     <p class="legal">&copy; 2026 Prateek Kumar Sahu</p>
@@ -505,6 +604,91 @@ html.still [data-motion] { display: none; }
 <canvas id="light" aria-hidden="true"></canvas>
 <div id="thanks" aria-live="polite"><p>Thank you for visiting.</p><p>Come back soon.</p></div>
 <button class="ghost" id="endshow" type="button">End the show</button>
+
+<div class="cv" id="resume" role="dialog" aria-modal="true" aria-labelledby="cv-name" hidden>
+  <button class="ghost cv__close" id="cv-close" type="button">Close</button>
+  <div class="cv__scroll">
+    <article class="cv__sheet">
+      <header class="cv__head">
+        <h2 id="cv-name">Prateek Kumar Sahu</h2>
+        <p class="cv__role">Software Engineer</p>
+        <ul class="cv__contact">
+          <li>Silchar, Assam, India</li>
+          <li>Open to relocation</li>
+          <li><a href="https://www.linkedin.com/in/prtksahu" target="_blank" rel="noopener">linkedin.com/in/prtksahu</a></li>
+          <li><a href="https://prtksahu.github.io/MewWeb/" target="_blank" rel="noopener">prtksahu.github.io/MewWeb</a></li>
+        </ul>
+      </header>
+      <div class="cv__body">
+        <div class="cv__main">
+          <section style="--i:0">
+            <h3>Summary</h3>
+            <p>M.Tech student in Communications and Signal Processing at NIT Silchar, graduating in May 2027. I train deep learning models in Python and PyTorch and benchmark them in numerical simulations of wireless networks built on 3GPP channel models. Before the M.Tech, I spent 15 months as a software engineer at CSG International, writing backend code in C++, C, Perl and SQL for a telecom billing platform.</p>
+          </section>
+          <section style="--i:2">
+            <h3>Research</h3>
+            <div class="cv__entry">
+              <h4>PredictPilot</h4><span class="cv__meta">M.Tech research, NIT Silchar</span>
+              <p class="cv__what">Uncertainty-aware channel prediction for pilot scheduling and precoding</p><span class="cv__meta">Aug 2025 – Present</span>
+            </div>
+            <p class="cv__note">Paper under review at E2A 2027, International Conference on Emerging Electronics and Automation</p>
+            <ul class="cv__pts">
+              <li>Built a model in Python and PyTorch that predicts each user's wireless channel up to 32 slots ahead in a massive MIMO system, using a ConvLSTM encoder and a diffusion transformer trained on irregular pilot history.</li>
+              <li>Used its uncertainty estimates to pick which users send pilots and to weight predictions in a WMMSE precoder.</li>
+              <li>Benchmarked against round-robin scheduling in 3GPP urban-macro simulations at 3.5 GHz: sum rate up 18.2% with 32 users and 28.7% with 48 users.</li>
+              <li>Used Claude Code, an LLM coding assistant, to write the Sionna training-data pipeline and the paper's simulations.</li>
+            </ul>
+          </section>
+          <section style="--i:4">
+            <h3>Experience</h3>
+            <div class="cv__entry">
+              <h4>CSG International</h4><span class="cv__meta">Remote, India</span>
+              <p class="cv__what">Software Development Engineer, Graduate</p><span class="cv__meta">Jun 2023 – Aug 2024</span>
+            </div>
+            <ul class="cv__pts">
+              <li>Shipped 2 billing and order-to-cash features for telecom clients on the Singleview platform, working in an Agile team with formal testing by dedicated test engineers.</li>
+              <li>Wrote backend logic in C++, C, Perl and Oracle SQL on UNIX, and integrated backend modules with other platform components through REST APIs.</li>
+              <li>Resolved over 30 customer-reported defects, and wrote Perl scripts to automate repetitive operational work.</li>
+            </ul>
+            <div class="cv__entry">
+              <p class="cv__what">Software Development Intern</p><span class="cv__meta">Jan 2023 – Mar 2023</span>
+            </div>
+          </section>
+        </div>
+        <div class="cv__side">
+          <section style="--i:1">
+            <h3>Education</h3>
+            <div class="cv__entry">
+              <h4>National Institute of Technology Silchar</h4>
+              <p class="cv__what">M.Tech, Communications and Signal Processing; CGPA 7.75/10</p>
+              <span class="cv__meta">Silchar, Assam · Aug 2025 – May 2027 (expected)</span>
+            </div>
+            <div class="cv__entry">
+              <h4>Kalinga Institute of Industrial Technology (KIIT)</h4>
+              <p class="cv__what">B.Tech, Electronics and Telecommunication Engineering; CGPA 8.36/10</p>
+              <span class="cv__meta">Bhubaneswar, Odisha · Jun 2019 – Jun 2023</span>
+              <ul class="cv__pts"><li>Minor in Computer Science; Honours in VLSI Design.</li></ul>
+            </div>
+            <div class="cv__entry">
+              <p>Career break: full-time GATE preparation</p>
+              <span class="cv__meta">Aug 2024 – Jul 2025</span>
+            </div>
+          </section>
+          <section style="--i:3">
+            <h3>Skills</h3>
+            <dl class="cv__skills">
+              <div><dt>Languages</dt><dd>C++, C, Python, SQL, Perl, MATLAB</dd></div>
+              <div><dt>Machine learning</dt><dd>PyTorch, generative diffusion models, transformers, ConvLSTM</dd></div>
+              <div><dt>Engineering</dt><dd>Numerical simulation (Sionna, 3GPP channel models), signal processing, wireless communications, massive MIMO, beamforming and precoding</dd></div>
+              <div><dt>Software</dt><dd>Data structures, algorithms, object-oriented programming (OOP), REST APIs, RDBMS, UNIX/Linux, Claude Code</dd></div>
+            </dl>
+          </section>
+        </div>
+      </div>
+    </article>
+  </div>
+</div>
+
 <div id="cursor" aria-hidden="true"><i class="halo"></i><i class="dot"></i></div>
 
 <script>
@@ -534,7 +718,12 @@ html.still [data-motion] { display: none; }
     { flower: 'dahlia',    acc: '#a14fff', hi: '#cb97ff', hue: 280, sat: 100, spark: [.66, .34, 1], tilt: .72, spin: 1 },
   ];
   let theme = Math.random() * THEMES.length | 0;
+  // blossoms and petals drawn on canvas ease to a new colour over the same 1.4 s as the page
+  const HI = THEMES.map(t => [1, 3, 5].map(i => parseInt(t.hi.slice(i, i + 2), 16)));
+  let tintFrom = HI[theme], tintTo = HI[theme], tintAt = -1e9;
+  const tinted = () => { const k = clamp((T - tintAt) / 1400, 0, 1); return tintFrom.map((v, i) => Math.round(v + (tintTo[i] - v) * k)); };
   const setTheme = i => {
+    tintFrom = tinted(); tintTo = HI[i]; tintAt = T;
     theme = i;
     document.documentElement.style.setProperty('--acc', THEMES[i].acc);
     document.documentElement.style.setProperty('--acc-hi', THEMES[i].hi);
@@ -622,15 +811,300 @@ html.still [data-motion] { display: none; }
     words.forEach((s, i) => s.classList.toggle('lit', i < n));
   };
 
-  // ================= stars (static) =================
-  function drawStars() {
-    const c = $('#stars'), dpr = Math.min(devicePixelRatio || 1, 2), g = c.getContext('2d');
-    c.width = W * dpr; c.height = H * dpr; g.scale(dpr, dpr); g.fillStyle = '#e6ecff';
-    for (let i = 0, n = Math.round(W * H / 6500); i < n; i++) {
-      g.globalAlpha = rand(.12, .7);
-      const r = rand(.4, 1.3);
-      g.fillRect(Math.random() * W, Math.random() * H, r, r);
+  // résumé: one sheet over the page, opened from the nav, from its card, or by loading the page at #resume.
+  // While it is open the scene behind is held still (held), so the blurred backdrop costs nothing.
+  const cv = $('#resume'), cvClose = $('#cv-close'), behind = [$('.nav'), $('main'), $('.closing')];
+  let held = false, cvFrom = null, cvTimer = 0;
+  const setHash = hash => { try { history.replaceState(null, '', location.href.split('#')[0] + hash); } catch (e) { /* sandboxed frame: the address stays as it is */ } };
+  function openCv() {
+    if (held) return;
+    held = true; cvFrom = document.activeElement;
+    clearTimeout(cvTimer); cv.hidden = false;
+    for (const el of behind) el.inert = true;
+    document.documentElement.classList.add('reading');
+    $('.cv__scroll').scrollTop = 0;
+    requestAnimationFrame(() => requestAnimationFrame(() => cv.classList.add('on')));
+    cvClose.focus({ preventScroll: true });
+    setHash('#resume');
+  }
+  function closeCv() {
+    if (!held) return;
+    held = false; cv.classList.remove('on');
+    for (const el of behind) el.inert = false;
+    document.documentElement.classList.remove('reading');
+    cvTimer = setTimeout(() => { cv.hidden = true; }, 300);
+    if (cvFrom && cvFrom.focus) cvFrom.focus({ preventScroll: true });
+    setHash('');
+  }
+  for (const el of $$('[data-cv]')) el.addEventListener('click', e => { e.preventDefault(); openCv(); });
+  cvClose.addEventListener('click', closeCv);
+  $('.cv__scroll').addEventListener('click', e => { if (e.target === e.currentTarget) closeCv(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape') closeCv(); });
+  if (location.hash === '#resume') openCv();
+
+  // soft discs, drawn once and reused: firework stars, blossom glow, twinkling stars, fireflies, smoke
+  const sprites = {};
+  const sprite = (key, stops) => {
+    if (!sprites[key]) {
+      const c = sprites[key] = document.createElement('canvas');
+      c.width = c.height = 48;
+      const g = c.getContext('2d'), r = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+      for (const [where, colour] of stops) r.addColorStop(where, colour);
+      g.fillStyle = r; g.fillRect(0, 0, 48, 48);
     }
+    return sprites[key];
+  };
+  const starOf = (h, s) => sprite(h + ':' + s, [[0, '#fff'], [.22, `hsla(${h},${s}%,74%,.95)`], [.5, `hsla(${h},${s}%,56%,.3)`], [1, `hsla(${h},${s}%,50%,0)`]]);
+  const twinkle = () => sprite('tw', [[0, '#fff'], [.2, 'rgba(214,226,255,.6)'], [.55, 'rgba(160,185,255,.12)'], [1, 'rgba(160,185,255,0)']]);
+
+  // ================= sky (static): stars, the Milky Way, a crescent moon and two constellations =================
+  // seeded, so the same sky and the same plants come back after every resize
+  const seeded = s => () => { s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const FIGURES = [   // where on the screen (x, y), size as a share of the height, the stars, the lines between them
+    [.45, .09, .2, [[0, .3], [.2, .2], [.38, .26], [.55, .4], [.6, .68], [.88, .76], [.93, .47]], [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]]],                // the Plough
+    [.445, .6, .2, [[.26, .08], [.7, .13], [.41, .48], [.5, .51], [.59, .55], [.3, .92], [.76, .9]], [[0, 1], [0, 2], [1, 4], [2, 3], [3, 4], [2, 5], [4, 6], [5, 6]]],     // Orion
+  ];
+  let twinklers = [];
+  function drawSky() {
+    const c = $('#stars'), dpr = Math.min(devicePixelRatio || 1, 2), g = c.getContext('2d'), R = seeded(7), r = (a, b) => a + R() * (b - a);
+    c.width = W * dpr; c.height = H * dpr; g.scale(dpr, dpr);
+    const disc = (x, y, rad, a, colour) => { g.globalAlpha = a; g.fillStyle = colour || '#e6ecff'; g.beginPath(); g.arc(x, y, rad, 0, TAU); g.fill(); };
+    // the Milky Way runs from the lower left to the upper right: dust first, then a drift of faint stars
+    const ax = -.02 * W, ay = 1.04 * H, bx = 1.02 * W, by = -.08 * H, len = Math.hypot(bx - ax, by - ay), nx = (ay - by) / len, ny = (bx - ax) / len;
+    const onBand = (t, off) => [ax + (bx - ax) * t + nx * off, ay + (by - ay) * t + ny * off];
+    for (let i = 0; i < 18; i++) {
+      const [x, y] = onBand(R(), r(-.07, .07) * H), rad = r(.14, .32) * H, dust = g.createRadialGradient(x, y, 0, x, y, rad);
+      const hue = r(210, 270) | 0, a = r(.022, .045);
+      dust.addColorStop(0, `hsla(${hue}, 55%, 72%, ${a})`); dust.addColorStop(.45, `hsla(${hue}, 55%, 72%, ${a * .38})`); dust.addColorStop(1, `hsla(${hue}, 55%, 72%, 0)`);
+      g.globalAlpha = 1; g.fillStyle = dust; g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+    }
+    for (let i = 0, n = Math.round(W * H / 1700); i < n; i++) { const [x, y] = onBand(R(), (R() + R() + R() - 1.5) * .12 * H); disc(x, y, r(.25, .7), r(.07, .32)); }
+    for (let i = 0, n = Math.round(W * H / 2600); i < n; i++) {     // the rest of the sky: many faint stars, a few bright, some warm or blue
+      const m = Math.pow(R(), 3.4), hue = R();
+      disc(R() * W, R() * H, .35 + m * 1.15, .14 + m * .72, hue < .07 ? '#ffd9b0' : hue < .14 ? '#b9cdff' : null);
+    }
+    if (!small()) for (const [fx, fy, size, pts, lines] of FIGURES) {
+      const s = size * H, at = p => [fx * W + p[0] * s, fy * H + p[1] * s];
+      g.globalAlpha = .17; g.strokeStyle = '#c9d6ff'; g.lineWidth = 1; g.beginPath();
+      for (const [a, b] of lines) { g.moveTo(...at(pts[a])); g.lineTo(...at(pts[b])); }
+      g.stroke();
+      for (const p of pts) { const [x, y] = at(p); disc(x, y, 3.6, .12); disc(x, y, 1.5, .9); }
+    }
+    const mr = small() ? 13 : clamp(H * .034, 18, 30), mx = small() ? W - 40 : W - Math.max(72, W * .07), my = small() ? 100 : clamp(H * .2, 128, 210);
+    const halo = g.createRadialGradient(mx, my, mr * .5, mx, my, mr * 6.5);
+    halo.addColorStop(0, 'rgba(226, 232, 255, .15)'); halo.addColorStop(1, 'rgba(226, 232, 255, 0)');
+    g.globalAlpha = 1; g.fillStyle = halo; g.fillRect(mx - mr * 7, my - mr * 7, mr * 14, mr * 14);
+    g.save(); g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.clip();
+    g.fillStyle = '#f4ecd8'; g.fillRect(mx - mr, my - mr, mr * 2, mr * 2);
+    g.fillStyle = '#0c0f18'; g.beginPath(); g.arc(mx - mr * .5, my - mr * .22, mr * 1.04, 0, TAU); g.fill();   // its own shadow leaves a crescent
+    g.restore();
+    twinklers = Array.from({ length: clamp(Math.round(W * H / 56000), 9, 28) }, () => ({ x: R(), y: R() * .8, r: 1.1 + Math.pow(R(), 2.2) * 2.3, ph: R() * TAU, rate: r(.0011, .0034) }));
+  }
+
+  // ================= flora: hills, vines down both margins, a flowering bough over the hero, drifting petals =================
+  // One fixed canvas behind the page. Plants are pinned to the page but scroll a little slower than it (SLOW), because
+  // they stand behind it. Stems grow tip-first; leaves and blossoms open as the tip passes them. Buds open when the
+  // pointer comes near or a firework bursts beside them.
+  const flora = $('#flora'), fc = flora.getContext('2d'), SLOW = .9, STEP = 12;
+  let fw = 0, fdpr = 1, plants = [], drift = [], hills = null, hillH = 0, shooting = null, shootAt = 3500, lastScroll = 0;
+
+  function drawHills() {                             // two ridges and a line of trees, drawn once per size
+    const hh = hillH = Math.round(clamp(H * .22, 110, 220)), c = hills = document.createElement('canvas'), g = c.getContext('2d'), R = seeded(23), r = (a, b) => a + R() * (b - a);
+    c.width = fw * fdpr; c.height = hh * fdpr; g.scale(fdpr, fdpr);
+    const ridge = (top, amp, ph) => x => top + amp * (.55 * Math.sin(x * .0034 + ph) + .3 * Math.sin(x * .0083 + ph * 2.7) + .15 * Math.sin(x * .021 + ph * 5.3));
+    const fill = (f, colour) => { g.fillStyle = colour; g.beginPath(); g.moveTo(0, hh); for (let x = 0; x <= fw + 8; x += 8) g.lineTo(x, f(x)); g.lineTo(fw + 8, hh); g.fill(); };
+    const far = ridge(hh * .36, hh * .2, 1.3), near = ridge(hh * .64, hh * .14, 4.1), haze = g.createLinearGradient(0, hh * .16, 0, hh * .8);
+    haze.addColorStop(0, '#0b0f19'); haze.addColorStop(1, '#04060a');      // the far ridge catches a little moonlight along its top
+    fill(far, haze); fill(near, '#020403');
+    g.fillStyle = g.strokeStyle = '#020403'; g.lineCap = 'round';
+    for (let x = r(10, 60); x < fw; x += r(24, 120)) {
+      const y = near(x) + 2;
+      if (R() < .3) {                                // an areca palm: a thin leaning trunk under a crown of fronds
+        const h = r(30, 54), lean = r(-7, 7), tx = x + lean, ty = y - h;
+        g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + lean * .2, y - h * .6, tx, ty); g.stroke();
+        g.lineWidth = 1.3;
+        for (let i = 0; i < 7; i++) {
+          const a = -Math.PI / 2 + (i - 3) * .52 + r(-.1, .1), L = r(11, 17);
+          g.beginPath(); g.moveTo(tx, ty); g.quadraticCurveTo(tx + Math.cos(a) * L * .6, ty + Math.sin(a) * L * .6 - 3, tx + Math.cos(a) * L, ty + Math.sin(a) * L + 5); g.stroke();
+        }
+      } else {                                       // a round-crowned tree
+        const h = r(14, 34), w = h * r(.5, .8);
+        g.fillRect(x - 1, y - h * .5, 2, h * .5);
+        for (let i = 0; i < 5; i++) { g.beginPath(); g.arc(x + r(-w, w) * .5, y - h * r(.55, 1), w * r(.3, .5), 0, TAU); g.fill(); }
+      }
+    }
+  }
+
+  // one plant: stems (polylines that grow from their first point), with leaves and blossoms pinned along them
+  function makePlant(R, kind, margin) {
+    const r = (a, b) => a + R() * (b - a), pl = { kind, stems: [], leaves: [], blooms: [], grown: 0 };
+    const addStem = (pts, parent, at, w) => {
+      const ys = pts.map(p => p[1]), st = { pts, parent, at, w, g: 0, top: Math.min(...ys), bottom: Math.max(...ys) };
+      pl.stems.push(st); return st;
+    };
+    const addLeaf = (st, j, a, L) => pl.leaves.push({ st, j, x: st.pts[j][0], y: st.pts[j][1], a, L, w: L * r(.28, .4), col: `hsl(${r(104, 150) | 0} ${r(30, 46) | 0}% ${r(13, 24) | 0}%)`, ph: r(0, TAU), bend: 0 });
+    const addBloom = (st, j, rad, open) => pl.blooms.push({ st, j, x: st.pts[j][0], y: st.pts[j][1], r: rad, a0: r(0, TAU), ph: r(0, TAU), open: open ? 1 : 0, o: 0 });
+    // a side shoot curves away from its parent, carries leaves, and may end in blossoms (open: the share already open)
+    const addShoot = (parent, at, a, length, s, flowers, open) => {
+      const pts = [], turn = r(-.07, .07); let [x, y] = parent.pts[at];
+      for (let i = 0, n = Math.max(3, Math.round(length / 9)); i <= n; i++) { pts.push([x, y]); a += turn; x += Math.cos(a) * 9; y += Math.sin(a) * 9; }
+      const st = addStem(pts, parent, at, 1.1 * s);
+      for (let j = 1; j < pts.length - 1; j += 2) addLeaf(st, j, Math.atan2(pts[j + 1][1] - pts[j][1], pts[j + 1][0] - pts[j][0]) + (j & 2 ? 1 : -1) * r(.7, 1.15), r(12, 22) * s);
+      if (flowers) { addBloom(st, pts.length - 1, r(6, 9.5) * s, R() < open); if (pts.length > 6 && R() < .6) addBloom(st, pts.length >> 1, r(5, 7.5) * s, R() < open); }
+    };
+    const addCurl = (parent, at, a, s) => {            // a tendril
+      const pts = []; let [x, y] = parent.pts[at], turn = .12;
+      for (let i = 0; i < 16; i++) { pts.push([x, y]); a += turn; turn += .05; x += Math.cos(a) * 3.4 * s; y += Math.sin(a) * 3.4 * s; }
+      addStem(pts, parent, at, .8);
+    };
+    if (kind === 'bough') {                          // reaches in from the upper right, across the moon
+      const length = clamp(fw * .3, 250, 540), y0 = $('.nav').offsetHeight + r(30, 44), pts = [];
+      for (let i = 0, n = Math.round(length / 10); i <= n; i++) { const t = i / n; pts.push([fw + 16 - t * length, y0 + 64 * t * t - 24 * Math.sin(t * Math.PI) + 4 * Math.sin(t * 11)]); }
+      const main = addStem(pts, null, 0, 2.6);
+      for (let k = 4, up = 1; k < pts.length - 2; k += 3 + (R() * 3 | 0)) {
+        up = -up;
+        const a = Math.PI + up * r(.45, 1.05);       // twigs lean toward the tip, some up, some hanging
+        if (R() < .72) addShoot(main, k, a, r(36, 100), 1, true, .45); else addLeaf(main, k, a, r(18, 30));
+      }
+      for (let k = 7; k < pts.length - 2; k += 4 + (R() * 4 | 0)) addBloom(main, k, r(5.5, 8), R() < .5);   // and some sit on the branch itself
+      addBloom(main, pts.length - 1, 10, true);
+    } else {                                         // a vine: two strands twined together, hanging down one margin
+      const side = kind === 'left' ? -1 : 1, s = clamp(margin / 110, .62, 1.3), base = Math.min(margin * .44, 110), A = Math.min(margin * .2, 46);
+      const l1 = r(150, 215), l2 = r(50, 80), p1 = r(0, TAU), p2 = r(0, TAU), end = (document.documentElement.scrollHeight - H) * SLOW + H + 40;
+      const X = v => { const x = base + A * Math.sin(v / l1 + p1) + A * .36 * Math.sin(v / l2 + p2); return side < 0 ? x : fw - x; };
+      const pts = [], twin = [];
+      for (let v = -30; v < end; v += STEP) { pts.push([X(v), v]); twin.push([X(v) + 5.5 * s * Math.sin(v / 22 + p2), v]); }
+      const main = addStem(pts, null, 0, 1.7 * s); addStem(twin, null, 0, s);
+      for (let k = 3, dir = 1; k < pts.length - 2; k += 2 + (R() * 3 | 0)) {
+        dir = -dir;
+        const a = dir > 0 ? r(-.3, .6) : Math.PI - r(-.3, .6), pick = R(), fromEdge = side < 0 ? pts[k][0] : fw - pts[k][0];
+        const room = dir * side < 0 ? Math.max(20, margin - 8 - fromEdge) : fromEdge + 20;    // a shoot toward the page stops short of the words
+        if (pick < .5) addLeaf(main, k, a, r(16, 32) * s);
+        else if (pick < .62) { addLeaf(main, k, a, r(15, 28) * s); addLeaf(main, k, Math.PI - a, r(13, 24) * s); }
+        else if (pick < .86) addShoot(main, k, a, Math.min(r(34, 84) * s, room), s, R() < .8, .5);
+        else if (pick < .93) addCurl(main, k, a, s);
+        else addBloom(main, k, r(5.5, 8) * s, R() < .5);
+      }
+    }
+    return pl;
+  }
+
+  function sizeFlora(still) {
+    fw = document.documentElement.clientWidth; fdpr = Math.min(devicePixelRatio || 1, 1.5);
+    flora.width = fw * fdpr; flora.height = H * fdpr;
+    drawHills();
+    const was = Object.fromEntries(plants.map(p => [p.kind, p.grown])), R = seeded(41), wrap = $('.hero .wrap');
+    const margin = wrap.getBoundingClientRect().left + parseFloat(getComputedStyle(wrap).paddingLeft);
+    plants = [];
+    if (fw >= 900) plants.push(makePlant(R, 'left', margin), makePlant(R, 'right', margin));
+    if (fw >= 720) plants.push(makePlant(R, 'bough', margin));
+    for (const p of plants) { p.grown = still ? 1e9 : was[p.kind] || 0; if (still || !fine) for (const b of p.blooms) b.open = 1; }
+    const n = still ? 0 : small() ? 8 : clamp(Math.round(fw * H / 64000), 12, 26);
+    drift.length = Math.min(drift.length, n);
+    while (drift.length < n) drift.push({ x: Math.random() * fw, y: Math.random() * H, z: rand(.4, 1), r: rand(6, 10.5), rot: rand(0, TAU), vr: rand(-.012, .012), tum: rand(0, TAU), vt: rand(.012, .035), ph: rand(0, TAU) });
+  }
+  const wake = (x, y, reach) => {                    // open the buds round a point on the screen
+    const off = scrollY * SLOW;
+    for (const pl of plants) for (const b of pl.blooms) if ((b.x - x) ** 2 + (b.y - off - y) ** 2 < reach * reach) b.open = 1;
+  };
+
+  function drawFlora(dt, still) {
+    const g = fc, sy = scrollY, off = sy * SLOW, slip = sy - lastScroll, tint = `rgb(${tinted()})`, th = THEMES[theme], span = H + 48;
+    lastScroll = sy;
+    g.setTransform(fdpr, 0, 0, fdpr, 0, 0); g.clearRect(0, 0, fw, H);
+    for (const s of twinklers) {                     // the brighter stars twinkle
+      const a = still ? .8 : .3 + .7 * (.5 + .5 * Math.sin(T * s.rate + s.ph)), x = s.x * fw, y = s.y * H, rad = s.r * 5;
+      g.globalAlpha = a; g.drawImage(twinkle(), x - rad, y - rad, rad * 2, rad * 2);
+      if (s.r > 2.4) { g.globalAlpha = a * .5; g.fillStyle = '#dfe8ff'; g.fillRect(x - rad * 1.5, y - .4, rad * 3, .8); g.fillRect(x - .4, y - rad * 1.5, .8, rad * 3); }
+    }
+    if (!still && !shooting && T > shootAt) {        // now and then, a shooting star
+      const left = Math.random() < .5;
+      shooting = { x: rand(.15, .85) * fw, y: rand(.05, .34) * H, a: left ? rand(2.5, 2.85) : rand(.3, .65), len: rand(170, 320), t0: T, dur: rand(620, 900) };
+    }
+    if (shooting) {
+      const m = shooting, k = (T - m.t0) / m.dur, e = q => 1 - (1 - q) * (1 - q);
+      if (k >= 1) { shooting = null; shootAt = T + rand(5200, 11000); }
+      else {
+        const d1 = m.len * e(k), d0 = m.len * e(Math.max(0, k - .3)), ca = Math.cos(m.a), sa = Math.sin(m.a);
+        const x0 = m.x + ca * d0, y0 = m.y + sa * d0, x1 = m.x + ca * d1, y1 = m.y + sa * d1, streak = g.createLinearGradient(x0, y0, x1, y1);
+        streak.addColorStop(0, 'rgba(255, 255, 255, 0)'); streak.addColorStop(1, `rgba(255, 250, 235, ${.9 * Math.sin(Math.PI * k)})`);
+        g.globalAlpha = 1; g.strokeStyle = streak; g.lineWidth = 1.6; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      }
+    }
+    g.globalAlpha = 1;
+    if (hills) g.drawImage(hills, 0, H - hillH, fw, hillH);
+
+    g.fillStyle = tint;                              // petals on the wind, in the colour of the last firework
+    for (const p of drift) {
+      p.y += (.22 + .5 * p.z) * dt - slip * .45 * p.z; p.x += (Math.sin(T * .0006 + p.ph) * .4 + .12) * p.z * dt;
+      p.rot += p.vr * dt; p.tum += p.vt * dt;
+      const dx = p.x - mouse.x, dy = p.y - mouse.y, d2 = dx * dx + dy * dy;
+      if (d2 < 19600) { const k = (1 - Math.sqrt(d2) / 140) * .05 * dt; p.x += mouse.vx * k; p.y += mouse.vy * k; }
+      p.y = ((p.y + 24) % span + span) % span - 24; p.x = ((p.x + 24) % (fw + 48) + fw + 48) % (fw + 48) - 24;
+      const c = Math.cos(p.rot) * fdpr * p.z, s = Math.sin(p.rot) * fdpr * p.z, flat = .25 + .75 * Math.abs(Math.cos(p.tum));
+      g.setTransform(c, s, -s * flat, c * flat, p.x * fdpr, p.y * fdpr);
+      g.globalAlpha = .2 + .5 * p.z;
+      g.beginPath(); g.moveTo(0, -p.r); g.bezierCurveTo(p.r * .95, -p.r * .55, p.r * .7, p.r * .75, 0, p.r); g.bezierCurveTo(-p.r * .7, p.r * .75, -p.r * .95, -p.r * .55, 0, -p.r); g.fill();
+    }
+
+    g.lineCap = g.lineJoin = 'round';
+    for (const pl of plants) {
+      const vine = pl.kind !== 'bough';
+      if (!still) {
+        if (!vine) { if (T > 500) pl.grown += .55 * dt; }
+        else {
+          const want = (off + H * .94 + 30) / STEP;
+          if (want - pl.grown > H / STEP) pl.grown = (off + 30) / STEP;        // far behind after a jump: start again from the top of the screen
+          pl.grown = Math.max(pl.grown, dt ? Math.min(want, pl.grown + 1.15 * dt) : want);   // with motion paused it is simply there
+        }
+      }
+      g.setTransform(fdpr, 0, 0, fdpr, 0, 0); g.globalAlpha = 1; g.strokeStyle = vine ? '#2c5535' : '#4d3d2f';
+      for (const st of pl.stems) {
+        const last = st.pts.length - 1;
+        st.g = st.parent ? clamp((st.parent.g - st.at) / 7, 0, 1) * last : Math.min(pl.grown, last);
+        if (st.g < .05 || st.bottom - off < -40 || st.top - off > H + 40) continue;
+        const n = Math.floor(st.g), long = vine && !st.parent;                  // the long strands are only drawn where they show
+        const i0 = long ? clamp(Math.floor((off - 40 - st.top) / STEP), 0, n) : 0, i1 = long ? Math.min(n, Math.ceil((off + H + 40 - st.top) / STEP)) : n;
+        if (st.w > 2) {                              // the bough itself tapers toward its tip
+          for (let i = 0; i < n; i++) { g.lineWidth = st.w * (1.25 - .85 * i / last); g.beginPath(); g.moveTo(st.pts[i][0], st.pts[i][1] - off); g.lineTo(st.pts[i + 1][0], st.pts[i + 1][1] - off); g.stroke(); }
+          continue;
+        }
+        g.lineWidth = st.w; g.beginPath(); g.moveTo(st.pts[i0][0], st.pts[i0][1] - off);
+        for (let i = i0 + 1; i <= i1; i++) g.lineTo(st.pts[i][0], st.pts[i][1] - off);
+        if (i1 === n && n < last) { const f = st.g - n, a = st.pts[n], b = st.pts[n + 1]; g.lineTo(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f - off); }
+        g.stroke();
+      }
+      g.strokeStyle = 'rgba(160, 210, 160, .28)'; g.lineWidth = .8;
+      for (const lf of pl.leaves) {
+        const y = lf.y - off, k = clamp((lf.st.g - lf.j) / 5, 0, 1);
+        if (k <= 0 || y < -50 || y > H + 50) continue;
+        const dx = lf.x - mouse.x, dy = y - mouse.y, d2 = dx * dx + dy * dy;      // leaves turn aside from the pointer
+        const push = d2 < 8100 ? (1 - Math.sqrt(d2) / 90) ** 2 * (Math.cos(lf.a) * dy - Math.sin(lf.a) * dx > 0 ? .8 : -.8) : 0;
+        lf.bend += (push - lf.bend) * Math.min(1, .12 * dt);
+        const a = lf.a + (still ? 0 : Math.sin(T * .0011 + lf.ph + lf.y * .012) * .1) + lf.bend, sc = k * (2 - k) * fdpr, c = Math.cos(a) * sc, s = Math.sin(a) * sc;
+        g.setTransform(c, s, -s, c, lf.x * fdpr, y * fdpr);
+        g.fillStyle = lf.col; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(lf.L * .45, -lf.w, lf.L, 0); g.quadraticCurveTo(lf.L * .45, lf.w, 0, 0); g.fill();
+        g.beginPath(); g.moveTo(1, 0); g.lineTo(lf.L * .86, 0); g.stroke();
+      }
+      const glow = starOf(th.hue, th.sat);
+      for (const b of pl.blooms) {
+        const y = b.y - off, k = clamp((b.st.g - b.j) / 4 + 1, 0, 1);            // full size as the tip reaches it
+        if (k <= 0 || y < -40 || y > H + 40) continue;
+        if (!b.open && mouse.seen && (b.x - mouse.x) ** 2 + (y - mouse.y) ** 2 < 12100) b.open = 1;
+        b.o = still ? 1 : b.o + (b.open - b.o) * Math.min(1, .07 * dt);
+        const o = b.o, rad = b.r * k * (.48 + .52 * o), turn = b.a0 + (still ? 0 : Math.sin(T * .0013 + b.ph) * .12);
+        g.setTransform(fdpr, 0, 0, fdpr, b.x * fdpr, y * fdpr);
+        if (o > .05) { g.globalAlpha = .22 * o * k; g.drawImage(glow, -rad * 3, -rad * 3, rad * 6, rad * 6); }
+        g.globalAlpha = k; g.fillStyle = tint;
+        for (let i = 0; i < 5; i++) {
+          const a = turn + i * TAU / 5, far = rad * .5 * (.3 + .7 * o);
+          g.beginPath(); g.ellipse(Math.cos(a) * far, Math.sin(a) * far, rad * .52, rad * .34 * (.5 + .5 * o), a, 0, TAU); g.fill();
+        }
+        g.fillStyle = '#ffe9ad'; g.beginPath(); g.arc(0, 0, rad * .2, 0, TAU); g.fill();
+      }
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1;
   }
 
   // ================= grass along the foot of the page =================
@@ -972,11 +1446,13 @@ html.still [data-motion] { display: none; }
     document.documentElement.classList.add('still');
     if (garden) garden.ready(theme, true).then(() => garden.show(theme, -60000));
     const still = () => {
-      W = innerWidth; H = innerHeight; drawStars(); seedLand(); grow = 1; drawLand(0); lightWords(); fitBars();
-      sizeGarden();
+      if (innerWidth < 2 || innerHeight < 2) return;
+      W = innerWidth; H = innerHeight; drawSky(); seedLand(); grow = 1; drawLand(0); lightWords(); fitBars();
+      sizeGarden(); sizeFlora(true); drawFlora(0, true);
       if (garden) Promise.resolve().then(() => garden.draw(0, 9, 9, 0, 0));
     };
     addEventListener('resize', still);
+    addEventListener('scroll', () => drawFlora(0, true), { passive: true });    // the plants are drawn on a fixed canvas, so they follow the scroll by hand
     still();
     return;
   }
@@ -1138,18 +1614,6 @@ html.still [data-motion] { display: none; }
 
   // ================= light: fireworks and fireflies, drawn above the page =================
   const light = $('#light'), lc = light.getContext('2d');
-  const sprites = {};                              // soft discs: one per star colour, plus firefly and smoke
-  const sprite = (key, stops) => {
-    if (!sprites[key]) {
-      const c = sprites[key] = document.createElement('canvas');
-      c.width = c.height = 48;
-      const g = c.getContext('2d'), r = g.createRadialGradient(24, 24, 0, 24, 24, 24);
-      for (const [where, colour] of stops) r.addColorStop(where, colour);
-      g.fillStyle = r; g.fillRect(0, 0, 48, 48);
-    }
-    return sprites[key];
-  };
-  const starOf = (h, s) => sprite(h + ':' + s, [[0, '#fff'], [.22, `hsla(${h},${s}%,74%,.95)`], [.5, `hsla(${h},${s}%,56%,.3)`], [1, `hsla(${h},${s}%,50%,0)`]]);
   const flyGlow = () => sprite('fly', [[0, 'rgba(255,255,220,1)'], [.18, 'rgba(226,244,120,.75)'], [.5, 'rgba(170,220,70,.16)'], [1, 'rgba(170,220,70,0)']]);
   const smokeGlow = () => sprite('smoke', [[0, 'rgba(170,170,185,.9)'], [.5, 'rgba(150,150,165,.35)'], [1, 'rgba(140,140,155,0)']]);
 
@@ -1161,9 +1625,9 @@ html.still [data-motion] { display: none; }
   const KINDS = ['peony', 'chrys', 'ring', 'willow', 'crossette', 'crackle'];
   const newStar = o => Object.assign({ life: 1, drag: .975, g: .028, size: 1, tr: null, trail: 0, glit: 0, split: 0, pop: 0 }, o);
 
-  // a shell climbs to (tx, ty) and opens there. th: which theme's colour. kind: how it breaks.
-  function launch(tx, ty, th, kind = KINDS[Math.random() * KINDS.length | 0], size = 1) {
-    shells.push({ x0: tx + rand(-70, 70), tx, ty, t0: T, dur: rand(700, 950), th, kind, size, wob: rand(0, TAU) });
+  // a shell climbs to (tx, ty) and opens there. th: which theme's colour. kind: how it breaks. dur: the climb in ms.
+  function launch(tx, ty, th, kind = KINDS[Math.random() * KINDS.length | 0], size = 1, dur = rand(700, 950)) {
+    shells.push({ x0: tx + rand(-70, 70), tx, ty, t0: T, dur, th, kind, size, wob: rand(0, TAU) });
   }
   function burst(x, y, th, kind, size) {
     const t = THEMES[th], k = small() ? .55 : 1, v = (small() ? 4 : 5.4) * size;
@@ -1200,6 +1664,7 @@ html.still [data-motion] { display: none; }
     sky = Math.max(sky, .09 * size); skyHue = t.hue; skySat = t.sat;
     if (stars.length > 3200) stars.splice(0, stars.length - 3200);
     if (ink) ink.puff(x / W, 1 - y / H, t.spark.map(c => c * .09), 55 * v);
+    wake(x, y, 260 * size);
   }
   function sizeLight() {
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -1293,7 +1758,7 @@ html.still [data-motion] { display: none; }
     garden.ready(i).then(() => { garden.show(i, T); bloomAt = T; bloomTheme = i; });
   }
 
-  // ================= the show: a few minutes of fireworks compressed into twenty seconds =================
+  // ================= the show: four seconds of fireworks, then a thank-you =================
   let showOn = false;
   const thanks = $('#thanks');
   function endShow() {
@@ -1306,18 +1771,15 @@ html.still [data-motion] { display: none; }
     if (showOn) return;
     showOn = true;
     document.body.classList.add('show');
-    let t = 500;
-    const shot = (x, y, th, kind, size) => later(t, () => launch(W * x, H * y, th, kind, size), 'show');
-    for (let i = 0; i < 6; i++) { shot(rand(.2, .8), rand(.18, .4), i % 7, KINDS[i % KINDS.length], 1.05); t += rand(750, 950); }            // singles
-    for (let i = 0; i < 5; i++) {                                                                                                          // pairs
-      shot(rand(.12, .45), rand(.15, .42), (i * 2 + 1) % 7, KINDS[(i + 2) % KINDS.length], 1.1);
-      shot(rand(.55, .88), rand(.15, .42), (i * 2 + 4) % 7, KINDS[(i + 4) % KINDS.length], 1.1);
-      t += rand(700, 900);
-    }
-    for (let i = 0; i < 16; i++) { shot(rand(.08, .92), rand(.12, .5), i % 7, i % 4 === 3 ? 'crackle' : i % 3 ? 'peony' : 'chrys', rand(.9, 1.3)); t += rand(130, 230); }   // the volley
-    for (let i = 0; i < 4; i++) { shot(.2 + i * .2, rand(.16, .28), 2, 'willow', 1.35); t += 160; }                                        // gold willows to close
-    later(t + 3600, () => thanks.classList.add('on'), 'show');
-    later(t + 9600, endShow, 'show');
+    // at: ms after the button. Show shells climb fast (about 0.6 s), so the first opens almost at once and the last by 3.9 s.
+    const shot = (at, x, y, th, kind, size) => later(at, () => launch(W * x, H * y, th, kind, size, rand(540, 680)), 'show');
+    shot(0, .3, .3, 0, 'peony', 1.15); shot(90, .7, .26, 5, 'chrys', 1.15);                          // an opening pair
+    shot(420, .5, .18, 3, 'ring', 1.2);
+    shot(760, .16, .36, 1, 'crossette', 1.05); shot(850, .84, .34, 6, 'peony', 1.1);
+    for (let i = 0; i < 11; i++) shot(1150 + i * 135, rand(.08, .92), rand(.12, .46), i % 7, i % 4 === 3 ? 'crackle' : i % 3 ? 'peony' : 'chrys', rand(.9, 1.3));   // the volley
+    for (let i = 0; i < 4; i++) shot(2950 + i * 90, .2 + i * .2, rand(.16, .26), 2, 'willow', 1.35);  // gold willows to close
+    later(3500, () => thanks.classList.add('on'), 'show');
+    later(7200, endShow, 'show');
   }
 
   // ================= pointer, cursor, card spotlight =================
@@ -1329,7 +1791,7 @@ html.still [data-motion] { display: none; }
     if (mouse.seen) {
       const dx = e.clientX - mouse.x, dy = e.clientY - mouse.y;
       mouse.vx = mouse.vx * .5 + dx * .5; mouse.vy = mouse.vy * .5 + dy * .5;
-      if (ink && !paused && Math.abs(dx) + Math.abs(dy) > 1) {
+      if (ink && !paused && !held && Math.abs(dx) + Math.abs(dy) > 1) {
         if (T - inkAt > 450) { inkIdx = (inkIdx + 1) % 3; inkAt = T; }
         const k = 3600 / Math.max(W, H), c = THEMES[theme].spark, dye = Math.min(1, Math.hypot(dx, dy) / 14) * .08;
         const tone = inkIdx === 0 ? c : inkIdx === 1 ? c.map(v => v * .6 + .4) : c.map(v => v * .55);   // the theme colour, a paler and a deeper one
@@ -1339,13 +1801,13 @@ html.still [data-motion] { display: none; }
     mouse.x = e.clientX; mouse.y = e.clientY; mouse.seen = true; moved = true;
     if (fine) cursorEl.classList.add('on');
   });
-  addEventListener('pointerover', e => { hsT = e.target.closest?.('a, button, .node, .chips li') ? 1.8 : 1; });
+  addEventListener('pointerover', e => { hsT = e.target.closest?.('a, button, .node, .chips li, [data-cv]') ? 1.8 : 1; });
   addEventListener('pointerdown', () => { hs = .55; });
   addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') away(); });
   addEventListener('pointercancel', away);
   document.documentElement.addEventListener('mouseleave', away);
   addEventListener('click', e => {
-    if (paused || e.target.closest('a, button, .node') || String(getSelection())) return;
+    if (paused || held || e.target.closest('a, button, .node, [data-cv], .cv') || String(getSelection())) return;
     if (showOn) { launch(e.clientX, e.clientY, Math.random() * THEMES.length | 0); return; }
     let i = Math.random() * (THEMES.length - 1) | 0;
     if (i >= asked) i++;                              // a colour other than the last one
@@ -1371,10 +1833,11 @@ html.still [data-motion] { display: none; }
   later(1300, () => launch(W * (small() ? .84 : .9), H * .3, theme, 'chrys', .85));
 
   function resize() {
+    if (innerWidth < 2 || innerHeight < 2) return;    // no viewport yet (a tab opened in the background): wait for the next resize
     W = innerWidth; H = innerHeight;
-    drawStars(); seedLand(); sizeLight(); fitBars();
+    drawSky(); seedLand(); sizeLight(); fitBars();
     if (ink) try { ink.resize(); } catch (e) { ink = null; console.warn('ink off:', e.message); }
-    sizeGarden();
+    sizeGarden(); sizeFlora();
   }
   function drawGarden(dt) {
     const r = roseEl.getBoundingClientRect();
@@ -1386,21 +1849,23 @@ html.still [data-motion] { display: none; }
   function frame(now) {
     const dt = Math.min(now - last, 50) / 16.7;
     last = now;
-    if (!paused) {
+    if (!paused && !held) {
       T += dt * 16.7;
       for (let i = queue.length - 1; i >= 0; i--) if (queue[i].at <= T) queue.splice(i, 1)[0].fn();
-      if (bloomTheme >= 0 && T - bloomAt >= 850) {    // the hero shell opens: the page takes its colour
+      if (bloomTheme >= 0 && T - bloomAt >= 850) {    // the hero shell opens: the page takes its colour, and the buds near it open
         const r = roseEl.getBoundingClientRect(), [x, y] = garden.at();
         setTheme(bloomTheme);
         if (ink && onScreen(roseEl)) ink.puff((r.left + x * r.width) / W, 1 - (r.bottom - y * r.height) / H, THEMES[bloomTheme].spark.map(c => c * .12), 420);
+        wake(r.left + x * r.width, r.bottom - y * r.height, 440);
         bloomTheme = -1;
       }
       if (ink) ink.frame(Math.min(dt / 60, .033));
       if (garden && onScreen(roseEl)) drawGarden(dt);
+      drawFlora(dt);
       drawLight(dt);
       if (onScreen(land)) drawLand(dt);
       if (onScreen(pipeSvg)) drawPulses();
-    }
+    } else if (scrollY !== lastScroll) drawFlora(0);  // paused: the plants still have to follow the scroll
     lightWords();
     if (moved) {
       moved = false;
