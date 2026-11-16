@@ -67,6 +67,17 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
     radial-gradient(95% 42% at 50% 100%, color-mix(in srgb, var(--acc) 20%, transparent), transparent 72%),
     radial-gradient(44% 36% at 92% 10%, color-mix(in srgb, var(--acc) 7%, transparent), transparent 72%);
 }
+#film {                               /* the hero's film: fireworks over a shrine gate. It scrolls away with the hero and fades out before the research section */
+  position: absolute; left: 0; top: 0; width: 100%; height: max(100svh, 620px); z-index: 0; overflow: hidden; pointer-events: none;
+  -webkit-mask-image: linear-gradient(#000 74%, transparent); mask-image: linear-gradient(#000 74%, transparent);
+}
+#film video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 50%; }
+#film video + video { opacity: 0; transition: opacity 1.4s linear; }
+#film::after {                        /* shade for the words: the left side, and the strip under the nav */
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, .8), rgba(0, 0, 0, .52) 32%, transparent 60%), linear-gradient(rgba(0, 0, 0, .6), transparent 20%);
+}
+@media (max-width: 719px) { #film::after { background: linear-gradient(rgba(0, 0, 0, .84), rgba(0, 0, 0, .62) 46%, transparent 66%); } }
 #ink { z-index: 1; }
 #light { z-index: 6; }
 main, .closing { position: relative; z-index: 2; }
@@ -135,6 +146,11 @@ h3 { font: 500 1.25rem/1.3 var(--sans); letter-spacing: -.01em; color: var(--ink
   text-shadow: 0 0 16px rgba(0, 0, 0, .9), 0 0 3px rgba(0, 0, 0, .7);
 }
 .btn { text-shadow: none; }
+.btn .sm { display: none; }          /* short labels, shown on phones so the three hero buttons stay on one row */
+.sheet {                             /* a small page in front of the résumé label */
+  flex: none; width: 13px; height: 16px; margin-right: 10px; border: 1.5px solid; border-radius: 2.5px;
+  background: repeating-linear-gradient(currentColor 0 1.5px, transparent 1.5px 4px) 50% 3.5px / 6px 7px no-repeat;
+}
 
 /* ---------- hero ---------- */
 .hero { position: relative; height: 100svh; min-height: 620px; overflow: hidden; }
@@ -163,6 +179,9 @@ h3 { font: 500 1.25rem/1.3 var(--sans); letter-spacing: -.01em; color: var(--ink
   .facts dd { font-size: .9375rem; }
   .actions { gap: 8px; }
   .actions .btn { padding: 0 16px; font-size: .9375rem; }
+  .actions .lg { display: none; }
+  .actions .sm { display: inline; }
+  .actions .sheet { margin-right: 8px; }
   .hero__row { display: none; }
 }
 
@@ -439,10 +458,11 @@ html.still [data-motion] { display: none; }
       <div class="hero__text">
         <p class="notice">Silchar, Assam, and open to relocation</p>
         <h1>Prateek Kumar <em>Sahu</em></h1>
-        <p class="lead">Software engineer and wireless researcher. I wrote C++ for a telecom billing platform for 15 months, and now I predict 5G radio channels at NIT Silchar.</p>
+        <p class="lead">Software engineer and wireless researcher. I wrote C for a telecom billing platform for 15 months, and now I predict 5G radio channels at NIT Silchar.</p>
         <div class="actions">
-          <a class="btn btn--solid" href="#research">Read the research</a>
-          <a class="btn btn--line" href="https://www.linkedin.com/in/prtksahu" target="_blank" rel="noopener">Open LinkedIn</a>
+          <a class="btn btn--solid" href="#resume" data-cv aria-label="Open the résumé"><i class="sheet" aria-hidden="true"></i><span class="lg" aria-hidden="true">Open the résumé</span><span class="sm" aria-hidden="true">Résumé</span></a>
+          <a class="btn btn--line" href="#research" aria-label="Read the research"><span class="lg" aria-hidden="true">Read the research</span><span class="sm" aria-hidden="true">Research</span></a>
+          <a class="btn btn--line" href="https://www.linkedin.com/in/prtksahu" target="_blank" rel="noopener" aria-label="Open LinkedIn"><span class="lg" aria-hidden="true">Open LinkedIn</span><span class="sm" aria-hidden="true">LinkedIn</span></a>
         </div>
       </div>
       <div class="hero__foot">
@@ -558,7 +578,7 @@ html.still [data-motion] { display: none; }
           <p>Software Development Engineer, remote</p>
           <p class="body">Backend code for the Singleview telecom billing platform. Resolved over 30 customer-reported defects and shipped 2 billing features. Interned there first, January to March 2023.</p>
           <ul class="chips" data-hue="350" aria-label="Used at CSG">
-            <li>C++</li><li>C</li><li>Perl</li><li>Oracle SQL</li><li>UNIX</li><li>Agile</li>
+            <li>C</li><li>C++</li><li>Perl</li><li>Oracle SQL</li><li>UNIX</li><li>Agile</li>
           </ul>
         </article>
         <article class="card c4 stop" data-stop="nit">
@@ -615,6 +635,8 @@ html.still [data-motion] { display: none; }
         <ul class="cv__contact">
           <li>Silchar, Assam, India</li>
           <li>Open to relocation</li>
+          <li><a href="tel:+918270702779">+91 8270702779</a></li>
+          <li><a href="mailto:prateeksahu2000@gmail.com">prateeksahu2000@gmail.com</a></li>
           <li><a href="https://www.linkedin.com/in/prtksahu" target="_blank" rel="noopener">linkedin.com/in/prtksahu</a></li>
           <li><a href="https://prtksahu.github.io/MewWeb/" target="_blank" rel="noopener">prtksahu.github.io/MewWeb</a></li>
         </ul>
@@ -623,7 +645,7 @@ html.still [data-motion] { display: none; }
         <div class="cv__main">
           <section style="--i:0">
             <h3>Summary</h3>
-            <p>M.Tech student in Communications and Signal Processing at NIT Silchar, graduating in May 2027. I train deep learning models in Python and PyTorch and benchmark them in numerical simulations of wireless networks built on 3GPP channel models. Before the M.Tech, I spent 15 months as a software engineer at CSG International, writing backend code in C++, C, Perl and SQL for a telecom billing platform.</p>
+            <p>M.Tech student in Communications and Signal Processing at NIT Silchar, graduating in May 2027. I train deep learning models in Python and PyTorch and benchmark them in numerical simulations of wireless networks built on 3GPP channel models. Before the M.Tech, I spent 15 months as a software engineer at CSG International, writing backend code in C, C++, Perl and SQL for a telecom billing platform.</p>
           </section>
           <section style="--i:2">
             <h3>Research</h3>
@@ -647,7 +669,7 @@ html.still [data-motion] { display: none; }
             </div>
             <ul class="cv__pts">
               <li>Shipped 2 billing and order-to-cash features for telecom clients on the Singleview platform, working in an Agile team with formal testing by dedicated test engineers.</li>
-              <li>Wrote backend logic in C++, C, Perl and Oracle SQL on UNIX, and integrated backend modules with other platform components through REST APIs.</li>
+              <li>Wrote backend logic in C, C++, Perl and Oracle SQL on UNIX, and integrated backend modules with other platform components through REST APIs.</li>
               <li>Resolved over 30 customer-reported defects, and wrote Perl scripts to automate repetitive operational work.</li>
             </ul>
             <div class="cv__entry">
@@ -677,7 +699,7 @@ html.still [data-motion] { display: none; }
           <section style="--i:3">
             <h3>Skills</h3>
             <dl class="cv__skills">
-              <div><dt>Languages</dt><dd>C++, C, Python, SQL, Perl, MATLAB</dd></div>
+              <div><dt>Languages</dt><dd>C, C++, Python, SQL, Perl, MATLAB</dd></div>
               <div><dt>Machine learning</dt><dd>PyTorch, generative diffusion models, transformers, ConvLSTM</dd></div>
               <div><dt>Engineering</dt><dd>Numerical simulation (Sionna, 3GPP channel models), signal processing, wireless communications, massive MIMO, beamforming and precoding</dd></div>
               <div><dt>Software</dt><dd>Data structures, algorithms, object-oriented programming (OOP), REST APIs, RDBMS, UNIX/Linux, Claude Code</dd></div>
@@ -710,12 +732,10 @@ html.still [data-motion] { display: none; }
   // spark: the colour as 0-1 rgb for WebGL. tilt: how far the flower leans toward the viewer. spin: whether it turns.
   const THEMES = [
     { flower: 'rose',      acc: '#e8173f', hi: '#ff5c76', hue: 350, sat: 100, spark: [1, .1, .16],  tilt: .62, spin: 1 },
-    { flower: 'tulip',     acc: '#ff6a1a', hi: '#ff9c57', hue: 22,  sat: 100, spark: [1, .4, .06],  tilt: .34, spin: 1 },
     { flower: 'sunflower', acc: '#f2b100', hi: '#ffd557', hue: 46,  sat: 100, spark: [1, .74, .1],  tilt: .22, spin: 0 },
     { flower: 'lotus',     acc: '#ff4f9a', hi: '#ff93c2', hue: 330, sat: 100, spark: [1, .28, .58], tilt: .6,  spin: 1 },
     { flower: 'lily',      acc: '#e6dfcc', hi: '#ffffff', hue: 48,  sat: 25,  spark: [1, .96, .86], tilt: .66, spin: 1 },
     { flower: 'hydrangea', acc: '#3f7dff', hi: '#86b3ff', hue: 218, sat: 100, spark: [.3, .52, 1],  tilt: .42, spin: 1 },
-    { flower: 'dahlia',    acc: '#a14fff', hi: '#cb97ff', hue: 280, sat: 100, spark: [.66, .34, 1], tilt: .72, spin: 1 },
   ];
   let theme = Math.random() * THEMES.length | 0;
   // blossoms and petals drawn on canvas ease to a new colour over the same 1.4 s as the page
@@ -1156,7 +1176,7 @@ html.still [data-motion] { display: none; }
     }
   }
 
-  // ================= flowers: seven clouds of lit points =================
+  // ================= flowers: five clouds of lit points =================
   // Builds one flower as 19 numbers a point: open position, bud position, normal, colour, burst direction + alpha,
   // then seed, arrival delay and shading. It uses nothing outside itself, so it can also run inside a worker.
   function buildFlower(name, n, phone) {
@@ -1185,16 +1205,15 @@ html.still [data-motion] { display: none; }
 
     // a petal or leaf as a strip: s runs base to tip, v across (-1..1).
     // L length, W half width, a0 pitch at the base (0 flat, PI/2 upright), curl pitch added by the tip, cup edge lift,
-    // r0 and z0 where the base sits, az the direction it grows in, wrap bends it round the stem like a cup,
+    // r0 and z0 where the base sits, az the direction it grows in,
     // p and q shape the outline, foot is the width kept at the base
     const strip = o => {
       const p = o.p || .8, q = o.q || .5, foot = o.foot == null ? .3 : o.foot, sp = p / (p + q), top = Math.pow(sp, p) * Math.pow(1 - sp, q);
       const c = Math.abs(o.curl) < .001 ? .001 : o.curl, ca = Math.cos(o.az), sa = Math.sin(o.az), s0 = Math.sin(o.a0), c0 = Math.cos(o.a0);
       return (s, v) => {
         const ang = o.a0 + c * s, w = o.W * (foot * (1 - s) + (1 - foot) * Math.pow(s, p) * Math.pow(1 - s, q) / top);
-        let x = o.r0 + o.L * (Math.sin(ang) - s0) / c, y, z = o.z0 - o.L * (Math.cos(ang) - c0) / c;
-        if (o.wrap) { const th = v * Math.min(w / Math.max(x, .06), 1.5); y = x * Math.sin(th); x *= Math.cos(th); }
-        else { const lift = (o.cup || 0) * w * v * v; x -= Math.sin(ang) * lift; z += Math.cos(ang) * lift; y = v * w; }
+        const lift = (o.cup || 0) * w * v * v, y = v * w;
+        const x = o.r0 + o.L * (Math.sin(ang) - s0) / c - Math.sin(ang) * lift, z = o.z0 - o.L * (Math.cos(ang) - c0) / c + Math.cos(ang) * lift;
         return [x * ca - y * sa, x * sa + y * ca, z];
       };
     };
@@ -1229,15 +1248,6 @@ html.still [data-motion] { display: none; }
         add(Math.round(n * .03), (t, a) => { const an = a * TAU, rho = .16 * Math.pow(1 - t, .7) + .035; return [rho * Math.cos(an), rho * Math.sin(an), -.32 - .18 * t]; }, null,
           () => mix(GREEN, LEAF, rand(.3, .8)), { delay: () => rand(.2, .6) });
         greens([0, 0, -.42], [[.36, 1, .85, .2, .45], [.56, -1, .85, .2, .45]]);
-      },
-      tulip() {                                        // six petals wrapped into a goblet
-        for (let k = 0; k < 6; k++) {
-          const inner = k % 2 === 0, o = { L: 1.75, W: inner ? .56 : .6, a0: .95, curl: .75, r0: inner ? .085 : .12, z0: -.76, az: k * TAU / 6, wrap: 1, p: .8, q: .36, foot: .35 };
-          add(Math.round(n * .15), strip(o), strip({ ...o, a0: 1.2, curl: .42, W: o.W * .8 }),
-            (s, v) => mix(mix([.96, .8, .12], [1, .42, .04], clamp(s / .28, 0, 1)), [.92, .18, .03], clamp((s - .5) / .5, 0, 1) * .65 + Math.abs(v) * .12),
-            { sym: true, ao: s => (.5 + .5 * clamp(s / .55, 0, 1)) * (inner ? .86 : 1), delay: s => (inner ? .1 : .3) + s * .5 });
-        }
-        greens([0, 0, -.78], [[.4, 1, 1.6, .18, 1.2], [.52, -1, 1.45, .16, 1.25]]);
       },
       sunflower() {                                    // a seeded disc and two rings of rays, leaning to face the viewer
         const lean = p => { const c = Math.cos(.95), s = Math.sin(.95); return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c]; };
@@ -1300,16 +1310,6 @@ html.still [data-motion] { display: none; }
           }
         }
         greens([0, 0, -.62], [[.14, 1, 1.05, .3, .12], [.24, -1, 1, .28, .12]]);
-      },
-      dahlia() {                                       // many cupped petals on a spiral, upright at the heart
-        const count = 120;
-        for (let k = 0; k < count; k++) {
-          const u = (k + .5) / count, o = { L: .2 + .68 * u, W: .06 + .13 * u, a0: 1.5 - 1.62 * u, curl: .25 - .5 * u, cup: .7, r0: .02 + .1 * u, z0: .28 * (1 - u) - .12, az: k * 2.39996, p: .7, q: .5, foot: .35 };
-          add(Math.round(n * .9 / count * (.4 + 1.2 * u)), strip(o), strip({ ...o, a0: Math.min(1.52, o.a0 + .8), curl: .2, L: o.L * .7 }),
-            (s, v) => mix([.34, .04, .55], [.74, .36, 1], clamp(s * .9 + Math.abs(v) * .15 - (1 - u) * .15, 0, 1)),
-            { sym: true, ao: s => (.5 + .5 * clamp(s / .5, 0, 1)) * (.7 + .3 * u), delay: s => u * .5 + s * .3 });
-        }
-        greens([0, 0, -.16], [[.34, 1, .9, .22, .5], [.54, -1, .85, .2, .5]]);
       },
     };
     flowers[name]();
@@ -1773,11 +1773,11 @@ html.still [data-motion] { display: none; }
     document.body.classList.add('show');
     // at: ms after the button. Show shells climb fast (about 0.6 s), so the first opens almost at once and the last by 3.9 s.
     const shot = (at, x, y, th, kind, size) => later(at, () => launch(W * x, H * y, th, kind, size, rand(540, 680)), 'show');
-    shot(0, .3, .3, 0, 'peony', 1.15); shot(90, .7, .26, 5, 'chrys', 1.15);                          // an opening pair
-    shot(420, .5, .18, 3, 'ring', 1.2);
-    shot(760, .16, .36, 1, 'crossette', 1.05); shot(850, .84, .34, 6, 'peony', 1.1);
-    for (let i = 0; i < 11; i++) shot(1150 + i * 135, rand(.08, .92), rand(.12, .46), i % 7, i % 4 === 3 ? 'crackle' : i % 3 ? 'peony' : 'chrys', rand(.9, 1.3));   // the volley
-    for (let i = 0; i < 4; i++) shot(2950 + i * 90, .2 + i * .2, rand(.16, .26), 2, 'willow', 1.35);  // gold willows to close
+    shot(0, .3, .3, 0, 'peony', 1.15); shot(90, .7, .26, 4, 'chrys', 1.15);                          // an opening pair
+    shot(420, .5, .18, 2, 'ring', 1.2);
+    shot(760, .16, .36, 1, 'crossette', 1.05); shot(850, .84, .34, 3, 'peony', 1.1);
+    for (let i = 0; i < 11; i++) shot(1150 + i * 135, rand(.08, .92), rand(.12, .46), i % THEMES.length, i % 4 === 3 ? 'crackle' : i % 3 ? 'peony' : 'chrys', rand(.9, 1.3));   // the volley
+    for (let i = 0; i < 4; i++) shot(2950 + i * 90, .2 + i * .2, rand(.16, .26), 1, 'willow', 1.35);  // gold willows to close
     later(3500, () => thanks.classList.add('on'), 'show');
     later(7200, endShow, 'show');
   }
@@ -1829,7 +1829,7 @@ html.still [data-motion] { display: none; }
   const onScreen = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < H; };
   let parX = 0, parY = 0;
   bloom(theme);
-  later(600, () => launch(W * (small() ? .2 : .56), H * .24, 2, 'peony', .8));     // two smaller shells beside the opening burst
+  later(600, () => launch(W * (small() ? .2 : .56), H * .24, 1, 'peony', .8));     // two smaller shells beside the opening burst
   later(1300, () => launch(W * (small() ? .84 : .9), H * .3, theme, 'chrys', .85));
 
   function resize() {
