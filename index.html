@@ -9,7 +9,7 @@
 <style>
 /* Layout: four screens on one 12-column wrap with equal left and right edges.
    Hero, research, path, closing garden. Behind them sits a fixed night scene:
-   sky, a glow on the horizon, hills, vines and drifting petals. The hero has
+   sky, a glow on the horizon, hills, rising lanterns and drifting petals. The hero has
    its own film, fireworks over a forest, above a sea the page draws. Ink follows the
    pointer underneath the cards; fireworks and fireflies draw above them. The
    accent (--acc) is set by script to the colour of the last firework, and the
@@ -89,7 +89,10 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(90deg, rgba(0, 0, 0, .78), rgba(0, 0, 0, .5) 32%, transparent 60%), linear-gradient(rgba(0, 0, 0, .6), transparent 20%);
 }
-@media (max-width: 719px) { #film::after { background: linear-gradient(rgba(0, 0, 0, .84), rgba(0, 0, 0, .6) 42%, transparent 60%); } }
+@media (max-width: 719px) {
+  #film { --sea: 74%; }               /* phones: a lower waterline leaves room for the bloom under the words */
+  #film::after { background: linear-gradient(rgba(0, 0, 0, .84), rgba(0, 0, 0, .6) 42%, transparent 60%); }
+}
 #ink { z-index: 1; }
 #light { z-index: 6; }
 main, .closing { position: relative; z-index: 2; }
@@ -634,7 +637,7 @@ html.still [data-motion] { display: none; }
         <button class="btn btn--line" id="show" type="button" data-motion>Launch the fireworks</button>
       </article>
     </div>
-    <p class="legal">&copy; 2026 Prateek Kumar Sahu</p>
+    <p class="legal">&copy; 2026 Prateek Kumar Sahu. This site keeps an anonymous count of visits; nothing that identifies you is sent.</p>
   </div>
   <canvas id="land" aria-hidden="true"></canvas>
 </footer>
@@ -747,13 +750,13 @@ html.still [data-motion] { display: none; }
   const small = () => W < 720;
 
   // ================= themes: every firework colour has its flower =================
-  // spark: the colour as 0-1 rgb for WebGL. tilt: how far the flower leans toward the viewer. spin: whether it turns.
+  // spark: the colour as 0-1 rgb for WebGL. img: the flower, photographed from directly above (made with Higgsfield).
   const THEMES = [
-    { flower: 'rose',      acc: '#e8173f', hi: '#ff5c76', hue: 350, sat: 100, spark: [1, .1, .16],  tilt: .62, spin: 1 },
-    { flower: 'sunflower', acc: '#f2b100', hi: '#ffd557', hue: 46,  sat: 100, spark: [1, .74, .1],  tilt: .22, spin: 0 },
-    { flower: 'lotus',     acc: '#ff4f9a', hi: '#ff93c2', hue: 330, sat: 100, spark: [1, .28, .58], tilt: .6,  spin: 1 },
-    { flower: 'lily',      acc: '#e6dfcc', hi: '#ffffff', hue: 48,  sat: 25,  spark: [1, .96, .86], tilt: .66, spin: 1 },
-    { flower: 'hydrangea', acc: '#3f7dff', hi: '#86b3ff', hue: 218, sat: 100, spark: [.3, .52, 1],  tilt: .42, spin: 1 },
+    { flower: 'rose',      img: 'media/rose.webp',      acc: '#e8173f', hi: '#ff5c76', hue: 350, sat: 100, spark: [1, .1, .16] },
+    { flower: 'sunflower', img: 'media/sunflower.webp', acc: '#f2b100', hi: '#ffd557', hue: 46,  sat: 100, spark: [1, .74, .1] },
+    { flower: 'lotus',     img: 'media/lotus.webp',     acc: '#ff4f9a', hi: '#ff93c2', hue: 330, sat: 100, spark: [1, .28, .58] },
+    { flower: 'lily',      img: 'media/lily.webp',      acc: '#e6dfcc', hi: '#ffffff', hue: 48,  sat: 25,  spark: [1, .96, .86] },
+    { flower: 'hydrangea', img: 'media/hydrangea.webp', acc: '#3f7dff', hi: '#86b3ff', hue: 218, sat: 100, spark: [.3, .52, 1] },
   ];
   let theme = Math.random() * THEMES.length | 0;
   // blossoms and petals drawn on canvas ease to a new colour over the same 1.4 s as the page
@@ -849,6 +852,57 @@ html.still [data-motion] { display: none; }
     words.forEach((s, i) => s.classList.toggle('lit', i < n));
   };
 
+  // ================= visit count: anonymous tallies for the visitors page (analytics.html, linked from nowhere) =================
+  // Only on the live site. Each tally is one number on a free public counter service: visits, visits per day, per kind
+  // of device, per source and per part of the world, and a few actions. Nothing that identifies a visitor is sent and
+  // no cookie is set; a flag in the browser's own storage tells a new visitor from one who came before.
+  // The owner's browser is left out once it has opened the visitors page.
+  const tally = (() => {
+    let skip = location.hostname !== 'prtksahu.github.io' || navigator.webdriver;
+    try { if (localStorage.getItem('mw-owner') === '1') skip = true; } catch (e) { /* storage blocked: count as usual */ }
+    if (skip) return () => {};
+    const HIT = [k => 'https://abacus.jasoncameron.dev/hit/mewweb/' + k, k => 'https://countapi.mileshilliard.com/api/v1/hit/mewweb-' + k];
+    const queue = [];
+    let busy = false;
+    const send = async () => {     // one at a time, each to the first service that answers; the visitors page adds the two up
+      if (busy) return;
+      busy = true;
+      while (queue.length) {
+        const k = queue.shift();
+        for (const url of HIT) {
+          try { if ((await fetch(url(k), { cache: 'no-store', keepalive: true })).ok) break; } catch (e) { /* try the other one */ }
+        }
+      }
+      busy = false;
+    };
+    return (...keys) => { queue.push(...keys); send(); };
+  })();
+  function countVisit() {
+    const day = new Date(Date.now() + 19800000).toISOString().slice(0, 10).replace(/-/g, '');      // the date in India
+    const dev = matchMedia('(pointer: coarse)').matches ? (Math.min(screen.width, screen.height) >= 600 ? 'tablet' : 'phone') : 'desktop';
+    let src = 'direct', tz = '', first = false;
+    try {
+      const h = document.referrer ? new URL(document.referrer).hostname : '';
+      src = !h || h === location.hostname ? 'direct' : /linkedin|lnkd/.test(h) ? 'linkedin' : /github/.test(h) ? 'github'
+        : /google|bing|duckduckgo|yahoo|yandex|baidu|ecosia|brave/.test(h) ? 'search' : 'other';
+    } catch (e) { /* no referrer */ }
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* unknown */ }
+    const reg = /^Asia\/(Kolkata|Calcutta)$/.test(tz) ? 'india' : /^Asia\//.test(tz) ? 'asia' : /^Europe\//.test(tz) ? 'europe'
+      : /^America\//.test(tz) ? 'americas' : /^Africa\//.test(tz) ? 'africa' : /^(Australia|Pacific)\//.test(tz) ? 'oceania' : 'other';
+    try { if (!localStorage.getItem('mw-seen')) { localStorage.setItem('mw-seen', '1'); first = true; } } catch (e) { /* storage blocked */ }
+    tally('visits', 'd-' + day, 'dev-' + dev, 'src-' + src, 'reg-' + reg, ...(first ? ['visitors'] : []));
+  }
+  {   // a visit counts once the page has been in view for two seconds
+    let counted = false;
+    const arm = () => {
+      if (counted || document.visibilityState !== 'visible') return;
+      setTimeout(() => { if (!counted && document.visibilityState === 'visible') { counted = true; countVisit(); } }, 2000);
+    };
+    document.addEventListener('visibilitychange', arm);
+    arm();
+  }
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('a[href*="linkedin.com"]')) tally('ev-linkedin'); }, true);
+
   // résumé: one sheet over the page, opened from the nav, from its card, or by loading the page at #resume.
   // While it is open the scene behind is held still (held), so the blurred backdrop costs nothing.
   const cv = $('#resume'), cvClose = $('#cv-close'), behind = [$('.nav'), $('main'), $('.closing')];
@@ -857,6 +911,7 @@ html.still [data-motion] { display: none; }
   function openCv() {
     if (held) return;
     held = true; cvFrom = document.activeElement;
+    tally('ev-resume');
     clearTimeout(cvTimer); cv.hidden = false;
     for (const el of behind) el.inert = true;
     document.documentElement.classList.add('reading');
@@ -896,7 +951,7 @@ html.still [data-motion] { display: none; }
   const twinkle = () => sprite('tw', [[0, '#fff'], [.2, 'rgba(214,226,255,.6)'], [.55, 'rgba(160,185,255,.12)'], [1, 'rgba(160,185,255,0)']]);
 
   // ================= sky (static): stars, the Milky Way, a crescent moon and two constellations =================
-  // seeded, so the same sky and the same plants come back after every resize
+  // seeded, so the same sky comes back after every resize
   const seeded = s => () => { s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   const FIGURES = [   // where on the screen (x, y), size as a share of the height, the stars, the lines between them
     [.45, .09, .2, [[0, .3], [.2, .2], [.38, .26], [.55, .4], [.6, .68], [.88, .76], [.93, .47]], [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]]],                // the Plough
@@ -939,12 +994,13 @@ html.still [data-motion] { display: none; }
     twinklers = Array.from({ length: clamp(Math.round(W * H / 56000), 9, 28) }, () => ({ x: R(), y: R() * .8, r: 1.1 + Math.pow(R(), 2.2) * 2.3, ph: R() * TAU, rate: r(.0011, .0034) }));
   }
 
-  // ================= flora: hills, vines down both margins, a flowering bough over the hero, drifting petals =================
-  // One fixed canvas behind the page. Plants are pinned to the page but scroll a little slower than it (SLOW), because
-  // they stand behind it. Stems grow tip-first; leaves and blossoms open as the tip passes them. Buds open when the
-  // pointer comes near or a firework bursts beside them.
-  const flora = $('#flora'), fc = flora.getContext('2d'), SLOW = .9, STEP = 12, filmEl = $('#film');
-  let fw = 0, fdpr = 1, plants = [], drift = [], hills = null, hillH = 0, shooting = null, shootAt = 3500, lastScroll = 0;
+  // ================= flora: hills, sky lanterns and drifting petals =================
+  // One fixed canvas behind the page. Paper lanterns rise slowly, mostly in the side margins, nearer ones bigger,
+  // brighter and quicker. Over the hero's sea they come up from behind the far shore, and the water shows each one
+  // as a column of broken light under it, the way a lamp looks across water.
+  const flora = $('#flora'), fc = flora.getContext('2d'), filmEl = $('#film'), skyEl = $('.film__sky');
+  let fw = 0, fdpr = 1, edge = 0, lanterns = [], drift = [], hills = null, hillH = 0, shooting = null, shootAt = 3500, lastScroll = 0;
+  const lanternGlow = () => sprite('lantern', [[0, 'rgba(255,228,164,1)'], [.2, 'rgba(255,178,86,.42)'], [.55, 'rgba(255,128,48,.1)'], [1, 'rgba(255,110,40,0)']]);
 
   function drawHills() {                             // two ridges and a line of trees, drawn once per size
     const hh = hillH = Math.round(clamp(H * .22, 110, 220)), c = hills = document.createElement('canvas'), g = c.getContext('2d'), R = seeded(23), r = (a, b) => a + R() * (b - a);
@@ -973,83 +1029,61 @@ html.still [data-motion] { display: none; }
     }
   }
 
-  // one plant: stems (polylines that grow from their first point), with leaves and blossoms pinned along them
-  function makePlant(R, kind, margin) {
-    const r = (a, b) => a + R() * (b - a), pl = { kind, stems: [], leaves: [], blooms: [], grown: 0 };
-    const addStem = (pts, parent, at, w) => {
-      const ys = pts.map(p => p[1]), st = { pts, parent, at, w, g: 0, top: Math.min(...ys), bottom: Math.max(...ys) };
-      pl.stems.push(st); return st;
-    };
-    const addLeaf = (st, j, a, L) => pl.leaves.push({ st, j, x: st.pts[j][0], y: st.pts[j][1], a, L, w: L * r(.28, .4), col: `hsl(${r(104, 150) | 0} ${r(30, 46) | 0}% ${r(13, 24) | 0}%)`, ph: r(0, TAU), bend: 0 });
-    const addBloom = (st, j, rad, open) => pl.blooms.push({ st, j, x: st.pts[j][0], y: st.pts[j][1], r: rad, a0: r(0, TAU), ph: r(0, TAU), open: open ? 1 : 0, o: 0 });
-    // a side shoot curves away from its parent, carries leaves, and may end in blossoms (open: the share already open)
-    const addShoot = (parent, at, a, length, s, flowers, open) => {
-      const pts = [], turn = r(-.07, .07); let [x, y] = parent.pts[at];
-      for (let i = 0, n = Math.max(3, Math.round(length / 9)); i <= n; i++) { pts.push([x, y]); a += turn; x += Math.cos(a) * 9; y += Math.sin(a) * 9; }
-      const st = addStem(pts, parent, at, 1.1 * s);
-      for (let j = 1; j < pts.length - 1; j += 2) addLeaf(st, j, Math.atan2(pts[j + 1][1] - pts[j][1], pts[j + 1][0] - pts[j][0]) + (j & 2 ? 1 : -1) * r(.7, 1.15), r(12, 22) * s);
-      if (flowers) { addBloom(st, pts.length - 1, r(6, 9.5) * s, R() < open); if (pts.length > 6 && R() < .6) addBloom(st, pts.length >> 1, r(5, 7.5) * s, R() < open); }
-    };
-    const addCurl = (parent, at, a, s) => {            // a tendril
-      const pts = []; let [x, y] = parent.pts[at], turn = .12;
-      for (let i = 0; i < 16; i++) { pts.push([x, y]); a += turn; turn += .05; x += Math.cos(a) * 3.4 * s; y += Math.sin(a) * 3.4 * s; }
-      addStem(pts, parent, at, .8);
-    };
-    if (kind === 'bough') {                          // reaches in from the upper right, across the moon
-      const length = clamp(fw * .3, 250, 540), y0 = $('.nav').offsetHeight + r(30, 44), pts = [];
-      for (let i = 0, n = Math.round(length / 10); i <= n; i++) { const t = i / n; pts.push([fw + 16 - t * length, y0 + 64 * t * t - 24 * Math.sin(t * Math.PI) + 4 * Math.sin(t * 11)]); }
-      const main = addStem(pts, null, 0, 2.6);
-      for (let k = 4, up = 1; k < pts.length - 2; k += 3 + (R() * 3 | 0)) {
-        up = -up;
-        const a = Math.PI + up * r(.45, 1.05);       // twigs lean toward the tip, some up, some hanging
-        if (R() < .72) addShoot(main, k, a, r(36, 100), 1, true, .45); else addLeaf(main, k, a, r(18, 30));
-      }
-      for (let k = 7; k < pts.length - 2; k += 4 + (R() * 4 | 0)) addBloom(main, k, r(5.5, 8), R() < .5);   // and some sit on the branch itself
-      addBloom(main, pts.length - 1, 10, true);
-    } else {                                         // a vine: two strands twined together, hanging down one margin
-      const side = kind === 'left' ? -1 : 1, s = clamp(margin / 110, .62, 1.3), base = Math.min(margin * .44, 110), A = Math.min(margin * .2, 46);
-      const l1 = r(150, 215), l2 = r(50, 80), p1 = r(0, TAU), p2 = r(0, TAU), end = (document.documentElement.scrollHeight - H) * SLOW + H + 40;
-      const X = v => { const x = base + A * Math.sin(v / l1 + p1) + A * .36 * Math.sin(v / l2 + p2); return side < 0 ? x : fw - x; };
-      const pts = [], twin = [];
-      for (let v = -30; v < end; v += STEP) { pts.push([X(v), v]); twin.push([X(v) + 5.5 * s * Math.sin(v / 22 + p2), v]); }
-      const main = addStem(pts, null, 0, 1.7 * s); addStem(twin, null, 0, s);
-      for (let k = 3, dir = 1; k < pts.length - 2; k += 2 + (R() * 3 | 0)) {
-        dir = -dir;
-        const a = dir > 0 ? r(-.3, .6) : Math.PI - r(-.3, .6), pick = R(), fromEdge = side < 0 ? pts[k][0] : fw - pts[k][0];
-        const room = dir * side < 0 ? Math.max(20, margin - 8 - fromEdge) : fromEdge + 20;    // a shoot toward the page stops short of the words
-        if (pick < .5) addLeaf(main, k, a, r(16, 32) * s);
-        else if (pick < .62) { addLeaf(main, k, a, r(15, 28) * s); addLeaf(main, k, Math.PI - a, r(13, 24) * s); }
-        else if (pick < .86) addShoot(main, k, a, Math.min(r(34, 84) * s, room), s, R() < .8, .5);
-        else if (pick < .93) addCurl(main, k, a, s);
-        else addBloom(main, k, r(5.5, 8) * s, R() < .5);
-      }
+  // a lantern starts below the screen (or anywhere, when the page is laid out); z is how near it is, 0 to 1
+  function newLantern(anywhere) {
+    const z = Math.pow(Math.random(), 1.5), inMargin = fw >= 900 && Math.random() < .85, left = Math.random() < .5;
+    const x = inMargin ? (left ? rand(.16, .84) * edge : fw - rand(.16, .84) * edge) : rand(.04, .96) * fw;
+    return { x, y: anywhere ? rand(-.05, 1) * H : H + rand(20, 220), z, s: 7 + 14 * z, vy: .1 + .26 * z, ph: rand(0, TAU), sway: rand(.4, 1.1), fl: rand(0, TAU) };
+  }
+  // a paper bag of light, wider at the top and open at the bottom, where the flame shows
+  function drawLantern(g, x, y, s, a, glow, lean) {
+    const w = s, h = s * 1.32;
+    g.globalAlpha = a * glow * .6;
+    g.drawImage(lanternGlow(), x - s * 2.4, y - s * 2.1, s * 4.8, s * 4.8);
+    g.save(); g.translate(x, y); g.rotate(lean);
+    const body = g.createLinearGradient(0, -h / 2, 0, h / 2);
+    body.addColorStop(0, '#9c3218'); body.addColorStop(.5, '#f08a3a'); body.addColorStop(1, '#ffd98c');
+    g.globalAlpha = a; g.fillStyle = body;
+    g.beginPath();
+    g.moveTo(-w * .5, -h * .5 + w * .14);
+    g.quadraticCurveTo(-w * .5, -h * .5, 0, -h * .5);
+    g.quadraticCurveTo(w * .5, -h * .5, w * .5, -h * .5 + w * .14);
+    g.lineTo(w * .34, h * .5); g.lineTo(-w * .34, h * .5); g.closePath(); g.fill();
+    g.globalAlpha = a * .3; g.fillStyle = '#5a1c0e'; g.fillRect(-w * .02, -h * .5, w * .04, h);      // a seam in the paper
+    g.globalAlpha = a * glow; g.fillStyle = '#fff4cf';
+    g.beginPath(); g.ellipse(0, h * .5 - s * .04, s * .16, s * .07, 0, 0, TAU); g.fill();
+    g.restore();
+  }
+  // its light on the water: a soft column with bright broken lines across it, longer for a higher lantern
+  function drawStreak(g, x, top, mid, s, a) {
+    const len = (mid - top) * 1.3, y0 = top + (mid - top) * .35;
+    g.globalAlpha = a * .22;
+    g.drawImage(lanternGlow(), x - s * .9, y0 - len * .1, s * 1.8, len * 1.2);
+    g.fillStyle = '#ffcf8a';
+    for (let k = 0; k < 6; k++) {
+      const q = k / 5, y = y0 + len * q, wob = Math.sin(T * .0035 + y * .19 + x * .07) * (1 + 2.5 * q);
+      g.globalAlpha = a * (.55 - .4 * q);
+      g.fillRect(x - s * (.22 + .2 * q) + wob, y, s * (.44 + .4 * q), Math.max(.8, s * .09));
     }
-    return pl;
   }
 
   function sizeFlora(still) {
     fw = document.documentElement.clientWidth; fdpr = Math.min(devicePixelRatio || 1, 1.5);
     flora.width = fw * fdpr; flora.height = H * fdpr;
     drawHills();
-    const was = Object.fromEntries(plants.map(p => [p.kind, p.grown])), R = seeded(41), wrap = $('.hero .wrap');
-    const margin = wrap.getBoundingClientRect().left + parseFloat(getComputedStyle(wrap).paddingLeft);
-    plants = [];
-    if (fw >= 900) plants.push(makePlant(R, 'left', margin), makePlant(R, 'right', margin));
-    if (fw >= 720) plants.push(makePlant(R, 'bough', margin));
-    for (const p of plants) { p.grown = still ? 1e9 : was[p.kind] || 0; if (still || !fine) for (const b of p.blooms) b.open = 1; }
+    const wrap = $('.hero .wrap');
+    edge = wrap.getBoundingClientRect().left + parseFloat(getComputedStyle(wrap).paddingLeft);    // where the words start
+    lanterns = Array.from({ length: fw < 720 ? 5 : fw < 1200 ? 9 : 13 }, () => newLantern(true));
     const n = still ? 0 : small() ? 8 : clamp(Math.round(fw * H / 64000), 12, 26);
     drift.length = Math.min(drift.length, n);
     while (drift.length < n) drift.push({ x: Math.random() * fw, y: Math.random() * H, z: rand(.4, 1), r: rand(6, 10.5), rot: rand(0, TAU), vr: rand(-.012, .012), tum: rand(0, TAU), vt: rand(.012, .035), ph: rand(0, TAU) });
   }
-  const wake = (x, y, reach) => {                    // open the buds round a point on the screen
-    const off = scrollY * SLOW;
-    for (const pl of plants) for (const b of pl.blooms) if ((b.x - x) ** 2 + (b.y - off - y) ** 2 < reach * reach) b.open = 1;
-  };
 
   function drawFlora(dt, still) {
-    const g = fc, sy = scrollY, off = sy * SLOW, slip = sy - lastScroll, tint = `rgb(${tinted()})`, th = THEMES[theme], span = H + 48;
+    const g = fc, sy = scrollY, slip = sy - lastScroll, tint = `rgb(${tinted()})`, span = H + 48;
     lastScroll = sy;
     const veil = filmEl.offsetHeight * .88 - sy;      // on screen the hero's film reaches down to here; it has its own sky, so ours stays off it
+    const wl = skyEl.offsetHeight - sy;               // and the waterline of its sea
     g.setTransform(fdpr, 0, 0, fdpr, 0, 0); g.clearRect(0, 0, fw, H);
     for (const s of twinklers) {                     // the brighter stars twinkle
       const a = still ? .8 : .3 + .7 * (.5 + .5 * Math.sin(T * s.rate + s.ph)), x = s.x * fw, y = s.y * H, rad = s.r * 5;
@@ -1089,61 +1123,21 @@ html.still [data-motion] { display: none; }
       g.beginPath(); g.moveTo(0, -p.r); g.bezierCurveTo(p.r * .95, -p.r * .55, p.r * .7, p.r * .75, 0, p.r); g.bezierCurveTo(-p.r * .7, p.r * .75, -p.r * .95, -p.r * .55, 0, -p.r); g.fill();
     }
 
-    g.lineCap = g.lineJoin = 'round';
-    for (const pl of plants) {
-      const vine = pl.kind !== 'bough';
+    g.setTransform(fdpr, 0, 0, fdpr, 0, 0);
+    for (const L of lanterns) {
       if (!still) {
-        if (!vine) { if (T > 500) pl.grown += .55 * dt; }
-        else {
-          const want = (off + H * .94 + 30) / STEP;
-          if (want - pl.grown > H / STEP) pl.grown = (off + 30) / STEP;        // far behind after a jump: start again from the top of the screen
-          pl.grown = Math.max(pl.grown, dt ? Math.min(want, pl.grown + 1.15 * dt) : want);   // with motion paused it is simply there
-        }
+        L.y -= L.vy * dt + slip * .3 * L.z;          // they rise, and lag a little behind the scroll
+        L.x += Math.sin(T * .0005 * L.sway + L.ph) * .1 * L.z * dt;
+        if (L.y < -50) Object.assign(L, newLantern(false));
+        else if (L.y > H + 320) L.y -= H + 360;
       }
-      g.setTransform(fdpr, 0, 0, fdpr, 0, 0); g.globalAlpha = 1; g.strokeStyle = vine ? '#2c5535' : '#4d3d2f';
-      for (const st of pl.stems) {
-        const last = st.pts.length - 1;
-        st.g = st.parent ? clamp((st.parent.g - st.at) / 7, 0, 1) * last : Math.min(pl.grown, last);
-        if (st.g < .05 || st.bottom - off < -40 || st.top - off > H + 40) continue;
-        const n = Math.floor(st.g), long = vine && !st.parent;                  // the long strands are only drawn where they show
-        const i0 = long ? clamp(Math.floor((off - 40 - st.top) / STEP), 0, n) : 0, i1 = long ? Math.min(n, Math.ceil((off + H + 40 - st.top) / STEP)) : n;
-        if (st.w > 2) {                              // the bough itself tapers toward its tip
-          for (let i = 0; i < n; i++) { g.lineWidth = st.w * (1.25 - .85 * i / last); g.beginPath(); g.moveTo(st.pts[i][0], st.pts[i][1] - off); g.lineTo(st.pts[i + 1][0], st.pts[i + 1][1] - off); g.stroke(); }
-          continue;
-        }
-        g.lineWidth = st.w; g.beginPath(); g.moveTo(st.pts[i0][0], st.pts[i0][1] - off);
-        for (let i = i0 + 1; i <= i1; i++) g.lineTo(st.pts[i][0], st.pts[i][1] - off);
-        if (i1 === n && n < last) { const f = st.g - n, a = st.pts[n], b = st.pts[n + 1]; g.lineTo(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f - off); }
-        g.stroke();
-      }
-      g.strokeStyle = 'rgba(160, 210, 160, .28)'; g.lineWidth = .8;
-      for (const lf of pl.leaves) {
-        const y = lf.y - off, k = clamp((lf.st.g - lf.j) / 5, 0, 1);
-        if (k <= 0 || y < -50 || y > H + 50) continue;
-        const dx = lf.x - mouse.x, dy = y - mouse.y, d2 = dx * dx + dy * dy;      // leaves turn aside from the pointer
-        const push = d2 < 8100 ? (1 - Math.sqrt(d2) / 90) ** 2 * (Math.cos(lf.a) * dy - Math.sin(lf.a) * dx > 0 ? .8 : -.8) : 0;
-        lf.bend += (push - lf.bend) * Math.min(1, .12 * dt);
-        const a = lf.a + (still ? 0 : Math.sin(T * .0011 + lf.ph + lf.y * .012) * .1) + lf.bend, sc = k * (2 - k) * fdpr, c = Math.cos(a) * sc, s = Math.sin(a) * sc;
-        g.setTransform(c, s, -s, c, lf.x * fdpr, y * fdpr);
-        g.fillStyle = lf.col; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(lf.L * .45, -lf.w, lf.L, 0); g.quadraticCurveTo(lf.L * .45, lf.w, 0, 0); g.fill();
-        g.beginPath(); g.moveTo(1, 0); g.lineTo(lf.L * .86, 0); g.stroke();
-      }
-      const glow = starOf(th.hue, th.sat);
-      for (const b of pl.blooms) {
-        const y = b.y - off, k = clamp((b.st.g - b.j) / 4 + 1, 0, 1);            // full size as the tip reaches it
-        if (k <= 0 || y < -40 || y > H + 40) continue;
-        if (!b.open && mouse.seen && (b.x - mouse.x) ** 2 + (y - mouse.y) ** 2 < 12100) b.open = 1;
-        b.o = still ? 1 : b.o + (b.open - b.o) * Math.min(1, .07 * dt);
-        const o = b.o, rad = b.r * k * (.48 + .52 * o), turn = b.a0 + (still ? 0 : Math.sin(T * .0013 + b.ph) * .12);
-        g.setTransform(fdpr, 0, 0, fdpr, b.x * fdpr, y * fdpr);
-        if (o > .05) { g.globalAlpha = .22 * o * k; g.drawImage(glow, -rad * 3, -rad * 3, rad * 6, rad * 6); }
-        g.globalAlpha = k; g.fillStyle = tint;
-        for (let i = 0; i < 5; i++) {
-          const a = turn + i * TAU / 5, far = rad * .5 * (.3 + .7 * o);
-          g.beginPath(); g.ellipse(Math.cos(a) * far, Math.sin(a) * far, rad * .52, rad * .34 * (.5 + .5 * o), a, 0, TAU); g.fill();
-        }
-        g.fillStyle = '#ffe9ad'; g.beginPath(); g.arc(0, 0, rad * .2, 0, TAU); g.fill();
-      }
+      const hide = clamp((L.y - wl + 4) / 16, 0, 1) * (1 - clamp((L.y - veil + 30) / 60, 0, 1));    // behind the hero's sea it is still below the far shore
+      const a = (.32 + .68 * L.z) * clamp((H + 30 - L.y) / 120, 0, 1) * (1 - hide);
+      if (a <= .01) continue;
+      const glow = still ? .9 : .8 + .2 * Math.sin(T * .006 + L.fl) * Math.sin(T * .0021 + L.fl * 2);
+      drawLantern(g, L.x, L.y, L.s, a, glow, still ? 0 : Math.sin(T * .0008 + L.ph) * .07);
+      const my = 2 * wl - L.y;                        // where it would mirror in the water
+      if (L.y < wl && my < veil) drawStreak(g, L.x, wl, my, L.s, a * (1 - clamp((wl - L.y) / (H * .5), 0, .8)));
     }
     g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1;
   }
@@ -1197,321 +1191,276 @@ html.still [data-motion] { display: none; }
     }
   }
 
-  // ================= flowers: five clouds of lit points =================
-  // Builds one flower as 19 numbers a point: open position, bud position, normal, colour, burst direction + alpha,
-  // then seed, arrival delay and shading. It uses nothing outside itself, so it can also run inside a worker.
-  function buildFlower(name, n, phone) {
-    const TAU = Math.PI * 2, STR = 19, data = new Float32Array(n * STR);
-    const rand = (a, b) => a + Math.random() * (b - a), clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-    const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-    const unit = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
-    const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-    const GREEN = [.05, .2, .07], LEAF = [.3, .58, .24];
-    let used = 0;
-
-    // add `count` points of the surface f(a, b); g is the same surface closed as a bud; col(a, b) is its colour.
-    // opt: sym (b runs -1..1); ao, delay, alpha and n (a fixed normal) as functions of (a, b)
-    const add = (count, f, g, col, opt = {}) => {
-      for (let k = 0; k < count && used < n; k++, used++) {
-        const a = clamp(Math.random(), .006, .994), b = opt.sym ? rand(-.994, .994) : clamp(Math.random(), .006, .994), e = .004;
-        const P = f(a, b), B = g ? g(a, b) : P, C = col(a, b);
-        const N = opt.n ? opt.n(a, b) : unit(cross(sub(f(a + e, b), P), sub(f(a, b + e), P)));
-        const an = Math.random() * TAU, z = rand(-1, 1), q = Math.sqrt(1 - z * z), sp = 2.6 * Math.pow(Math.random(), .3);
-        data.set([P[0], P[1], P[2], B[0], B[1], B[2], N[0], N[1], N[2], C[0], C[1], C[2],
-          q * Math.cos(an) * sp, q * Math.sin(an) * sp, z * sp * .6, opt.alpha ? opt.alpha(a, b) : 1,
-          Math.random(), opt.delay ? opt.delay(a, b) : Math.random(), opt.ao ? opt.ao(a, b) : 1], used * STR);
-      }
-    };
-
-    // a petal or leaf as a strip: s runs base to tip, v across (-1..1).
-    // L length, W half width, a0 pitch at the base (0 flat, PI/2 upright), curl pitch added by the tip, cup edge lift,
-    // r0 and z0 where the base sits, az the direction it grows in,
-    // p and q shape the outline, foot is the width kept at the base
-    const strip = o => {
-      const p = o.p || .8, q = o.q || .5, foot = o.foot == null ? .3 : o.foot, sp = p / (p + q), top = Math.pow(sp, p) * Math.pow(1 - sp, q);
-      const c = Math.abs(o.curl) < .001 ? .001 : o.curl, ca = Math.cos(o.az), sa = Math.sin(o.az), s0 = Math.sin(o.a0), c0 = Math.cos(o.a0);
-      return (s, v) => {
-        const ang = o.a0 + c * s, w = o.W * (foot * (1 - s) + (1 - foot) * Math.pow(s, p) * Math.pow(1 - s, q) / top);
-        const lift = (o.cup || 0) * w * v * v, y = v * w;
-        const x = o.r0 + o.L * (Math.sin(ang) - s0) / c - Math.sin(ang) * lift, z = o.z0 - o.L * (Math.cos(ang) - c0) / c + Math.cos(ang) * lift;
-        return [x * ca - y * sa, x * sa + y * ca, z];
-      };
-    };
-
-    // the stem down from `top`, then leaves as [how far down, side, length, half width, pitch]; uses every point left
-    const greens = (top, leaves) => {
-      const stem = t => [top[0] + .2 * Math.sin(t * 1.4) * t, top[1] - .1 * t, top[2] - 2.3 * t];
-      const fade = t => 1 - clamp((t - (phone ? .15 : .4)) / (phone ? .3 : .5), 0, 1);
-      add(leaves.length ? Math.round((n - used) * .4) : n - used,
-        (t, a) => { const c = stem(t), an = a * TAU; return [c[0] + Math.cos(an) * .034, c[1] + Math.sin(an) * .034, c[2]]; }, null,
-        () => mix(GREEN, LEAF, rand(.25, .7)), { alpha: fade, delay: t => .2 + t * .5 });
-      const each = Math.floor((n - used) / (leaves.length || 1));
-      for (const [t0, side, L, Wd, pitch] of leaves) {
-        const b = stem(t0), f = strip({ L, W: Wd, a0: pitch, curl: -.9, cup: .22, r0: .03, z0: 0, az: side > 0 ? -.3 : Math.PI + .3, p: .7, q: .6, foot: .12 });
-        add(each, (s, v) => { const p = f(s, v); return [p[0] + b[0], p[1] + b[1], p[2] + b[2]]; }, null,
-          (s, v) => mix(GREEN, LEAF, Math.abs(v) < .08 ? .95 : rand(.3, .7)), { sym: true, alpha: () => fade(t0) * (phone ? .6 : 1), delay: () => rand(.35, .8) });
-      }
-    };
-
-    const flowers = {
-      rose() {
-        const pt = (r, th, k) => {                     // a parametric rose; k opens it (1) or closes it
-          const m = (((3.6 * th) % TAU) + TAU) % TAU, x = 1 - .5 * Math.pow(1.25 * Math.pow(1 - m / Math.PI, 2) - .25, 2);
-          const phi = (Math.PI / 2) * Math.exp(-th / (8 * Math.PI)) * k, y = 1.995653 * r * r * Math.pow(1.27689 * r - 1, 2) * Math.sin(phi);
-          const R = x * (r * Math.sin(phi) + y * Math.cos(phi));
-          return [R * Math.sin(th), R * Math.cos(th), x * (r * Math.cos(phi) - y * Math.sin(phi)) - .3];
-        };
-        const f = k => (a, b) => pt(Math.pow(a, .62), -2 + 64.83 * Math.pow(b, 1.9), k), bud = f(.4);
-        add(Math.round(n * .88), f(1), (a, b) => bud(a, b).map(v => v * .9),
-          a => { const r = Math.pow(a, .62), e = clamp((r - .88) / .12, 0, 1), c = mix([.34, 0, .04], [.9, .05, .13], Math.pow(r, 1.2)); return [c[0] + .22 * e, c[1] + .05 * e, c[2] + .07 * e]; },
-          { ao: a => .45 + .55 * clamp((Math.pow(a, .62) - .08) / .72, 0, 1), delay: (a, b) => (1 - Math.pow(b, 1.9)) * .7 + Math.random() * .3 });
-        add(Math.round(n * .03), (t, a) => { const an = a * TAU, rho = .16 * Math.pow(1 - t, .7) + .035; return [rho * Math.cos(an), rho * Math.sin(an), -.32 - .18 * t]; }, null,
-          () => mix(GREEN, LEAF, rand(.3, .8)), { delay: () => rand(.2, .6) });
-        greens([0, 0, -.42], [[.36, 1, .85, .2, .45], [.56, -1, .85, .2, .45]]);
-      },
-      sunflower() {                                    // a seeded disc and two rings of rays, leaning to face the viewer
-        const lean = p => { const c = Math.cos(.95), s = Math.sin(.95); return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c]; };
-        add(Math.round(n * .3), (a, b) => { const r = .43 * Math.sqrt(a), an = b * TAU; return lean([r * Math.cos(an), r * Math.sin(an), .1 * (1 - a)]); }, null,
-          (a, b) => { const r = Math.sqrt(a), c = r < .45 ? mix([.44, .38, .07], [.2, .1, .02], r / .45) : mix([.2, .1, .02], [.52, .3, .05], (r - .45) / .55), k = .68 + .32 * Math.sin(r * 58 + b * TAU * 21); return [c[0] * k, c[1] * k, c[2] * k]; },
-          { delay: a => .1 + Math.sqrt(a) * .3 });
-        for (let k = 0; k < 34; k++) {
-          const back = k >= 17, o = { L: back ? .6 : .66, W: .1, a0: back ? .04 : .2, curl: -.32, cup: .3, r0: .4, z0: back ? -.02 : .03, az: (k % 17 + (back ? .5 : 0)) * TAU / 17, p: .55, q: .5, foot: .3 };
-          const f = strip(o), g = strip({ ...o, a0: 1.25, curl: .5, L: o.L * .8 });
-          add(Math.round(n * .58 / 34), (s, v) => lean(f(s, v)), (s, v) => lean(g(s, v)), s => mix([1, .56, .03], [1, .86, .16], clamp(s * 1.2, 0, 1)),
-            { sym: true, ao: s => (.6 + .4 * clamp(s / .5, 0, 1)) * (back ? .82 : 1), delay: s => .35 + s * .4 });
-        }
-        greens(lean([0, 0, -.07]), [[.3, 1, 1, .32, .5], [.5, -1, .95, .3, .5]]);
-      },
-      lotus() {                                        // three rings of pointed petals round a seed pod
-        const rings = [[8, .7, .2, 1.05, .32, .1, .02, 0], [9, .92, .26, .68, .26, .13, 0, .5], [11, 1.02, .28, .3, .16, .16, -.03, .25]];
-        rings.forEach(([cnt, L, Wd, a0, curl, r0, z0, off], ri) => {
-          for (let k = 0; k < cnt; k++) {
-            const o = { L, W: Wd, a0, curl, cup: .5, r0, z0, az: (k + off) * TAU / cnt, p: .75, q: .45, foot: .35 };
-            add(Math.round(n * .8 / 28), strip(o), strip({ ...o, a0: Math.min(1.5, a0 + .75), curl: .12, W: Wd * .8 }),
-              (s, v) => mix([1, .93, .95], [1, .3, .6], clamp(Math.pow(s, 1.5) * .95 + Math.abs(v) * .08, 0, 1)),
-              { sym: true, ao: s => .55 + .45 * clamp(s / .5, 0, 1), delay: s => .1 + ri * .2 + s * .3 });
-          }
-        });
-        add(Math.round(n * .04), (a, b) => { const r = .13 * Math.sqrt(a), an = b * TAU; return [r * Math.cos(an), r * Math.sin(an), .16 + .02 * (1 - a)]; }, null,
-          () => mix([.75, .7, .15], [.95, .85, .3], Math.random()), { delay: () => rand(0, .3) });
-        add(Math.round(n * .06), (a, b) => { const an = Math.round(b * 70) / 70 * TAU, r = .13 + .12 * a; return [r * Math.cos(an), r * Math.sin(an), .03 + .2 * a - .05 * a * a]; }, null,
-          a => mix([1, .8, .2], [1, .93, .5], a), { n: () => [0, -.5, .85], delay: () => rand(0, .3) });
-        greens([0, 0, -.06], []);
-      },
-      lily() {                                         // six petals that rise, open and curl back, with stamens
-        for (let k = 0; k < 6; k++) {
-          const inner = k % 2 === 0, o = { L: 1.3, W: inner ? .27 : .22, a0: 1.35, curl: -2.1, cup: .28, r0: .05, z0: -.38, az: k * TAU / 6, p: .65, q: .5, foot: .22 };
-          add(Math.round(n * .135), strip(o), strip({ ...o, a0: 1.5, curl: -.12, W: o.W * .7 }),
-            (s, v) => mix(mix([.98, .97, .92], [.84, .86, .78], Math.abs(v) * .5), [.7, .82, .34], clamp(1 - s / .3, 0, 1) * .8),
-            { sym: true, ao: s => .6 + .4 * clamp(s / .4, 0, 1), delay: s => .15 + s * .5 });
-        }
-        for (let k = 0; k < 6; k++) {
-          const az = (k + .5) * TAU / 6, f = t => { const r = .04 + .46 * Math.pow(t, 1.5); return [r * Math.cos(az), r * Math.sin(az), -.36 + 1.05 * t - .18 * t * t]; }, tip = f(1);
-          add(Math.round(n * .008), f, null, () => [.8, .9, .6], { n: () => [0, -.6, .8], delay: () => rand(.3, .6) });
-          add(Math.round(n * .012), (a, b) => { const an = b * TAU, ph = a * Math.PI; return [tip[0] + .028 * Math.sin(ph) * Math.cos(an), tip[1] + .028 * Math.sin(ph) * Math.sin(an), tip[2] + .07 * Math.cos(ph)]; }, null,
-            () => mix([.6, .2, .03], [.85, .4, .08], Math.random()), { delay: () => rand(.4, .7) });
-        }
-        add(Math.round(n * .008), a => [0, 0, -.36 + 1.15 * a], null, a => a > .93 ? [.6, .75, .3] : [.85, .92, .7], { n: () => [0, -.6, .8], delay: () => rand(.3, .6) });
-        greens([0, 0, -.4], [[.3, 1, 1, .11, .9], [.45, -1, .95, .1, .9], [.6, 1, .8, .09, .8]]);
-      },
-      hydrangea() {                                    // a ball of small four-petalled florets
-        const count = 64, per = Math.round(n * .84 / count / 4);
-        for (let k = 0; k < count; k++) {
-          const zz = 1 - (k + .5) / count * 1.35, rr = Math.sqrt(Math.max(0, 1 - zz * zz)), an = k * 2.39996;
-          const d = [rr * Math.cos(an), rr * Math.sin(an), zz], u = unit(cross(d, Math.abs(zz) > .9 ? [1, 0, 0] : [0, 0, 1])), w = cross(d, u);
-          const R = .78 + rand(-.04, .04), tone = Math.random(), turn = rand(0, TAU);
-          const deep = tone < .6 ? [.2, .36, 1] : tone < .85 ? [.42, .36, 1] : [.35, .6, 1];
-          for (let j = 0; j < 4; j++) {
-            const o = { L: .21, W: .11, a0: .28, curl: -.4, cup: .25, r0: .012, z0: 0, az: turn + j * TAU / 4, p: .5, q: .28, foot: .3 };
-            const f = strip(o), g = strip({ ...o, a0: 1.3, curl: .2, L: .12 });
-            const put = (fn, scale) => (s, v) => { const p = fn(s, v); return [0, 1, 2].map(i => (d[i] * (R + p[2]) + u[i] * p[0] + w[i] * p[1]) * scale - (i === 2 ? .18 : 0)); };
-            add(per, put(f, 1), put(g, .62), s => mix([.74, .83, 1], deep, clamp(s * 1.6, 0, 1)),
-              { sym: true, ao: () => .55 + .45 * clamp((zz + .35) / 1.2, 0, 1), delay: () => .15 + (1 - zz) * .25 + Math.random() * .2 });
-          }
-        }
-        greens([0, 0, -.62], [[.14, 1, 1.05, .3, .12], [.24, -1, 1, .28, .12]]);
-      },
-    };
-    flowers[name]();
-    return data.slice(0, used * STR);
-  }
-
-  // draws the flower in the hero: a shell rises, bursts, and its sparks settle into the flower, which then opens.
-  // When another colour is launched, the flower on show scatters as that shell bursts.
+  // ================= the bloom: a firework that becomes a flower, floating over the sea =================
+  // Each flower is a photograph taken from directly above (made with Higgsfield, background cut away). A shell rises
+  // from the far shore and bursts; its sparks dim toward smoke and then gather on the photograph's own pixels, so the
+  // bloom forms out of the firework and unfurls, and then the photograph itself fades in. It floats, turns slowly,
+  // parts round the pointer and trails light smoke, and the sea below mirrors the film, the sparks and the bloom.
   function createGarden(canvas) {
-    const gl = canvas.getContext('webgl', { alpha: true, antialias: false, depth: true, premultipliedAlpha: true });
+    const gl = canvas.getContext('webgl', { alpha: true, antialias: false, depth: false, premultipliedAlpha: true });
     if (!gl) return null;
-    const STR = 19, RISE = 850, phone = innerWidth < 720, N = phone ? 28000 : 56000;
-    // Ripples: fine and quick far off (near the waterline), broad and slow close by. Both shaders share them,
-    // so the film's reflection and the flower's move as one surface.
+    const STR = 13, RISE = 850, N = innerWidth < 720 ? 16000 : 30000, LAYOUT = [2, 2, 3, 4, 2];   // aOpen, aBud, aCol, aDir, aMisc
+    // Ripples: fine and quick far off (near the waterline), broad and slow close by. Every pass shares them, so the
+    // film's reflection, the sparks' and the bloom's move as one surface.
     const WAVE = `uniform float uSea, uClock;
       float wave(float x, float h, float dn) { float k = mix(90., 22., dn);
         return .5 * sin(h * k * 3. + uClock * 1.1 + x * 6.) + .5 * sin(h * k * 1.3 - uClock * .7 + x * 17.); }`;
-    const VS = `attribute vec3 aOpen, aBud, aNrm, aCol, aMisc; attribute vec4 aDir;
-      uniform float uT, uGone, uRot, uTilt, uAsp, uS, uPx, uFlip; uniform vec2 uC, uPtr; uniform vec3 uSpark;
+    // The bloom's frame: centre uC, radius uS (clip units of the height), turned by uRot, leaning back by uLean (the
+    // cosine of its tilt). turn() takes a point of the bloom (in bloom radii) into screen axes; local() undoes the frame.
+    const FRAME = `uniform mediump vec2 uC; uniform mediump float uS, uAsp, uRot, uLean;
+      vec2 turn(vec2 f) { float c = cos(uRot), s = sin(uRot); return vec2(f.x * c - f.y * s, (f.x * s + f.y * c) * uLean); }
+      vec2 local(vec2 ndc) { vec2 v = (ndc - uC) * vec2(uAsp, 1.) / uS; v.y /= uLean; float c = cos(uRot), s = sin(uRot); return vec2(v.x * c + v.y * s, -v.x * s + v.y * c); }`;
+    const HIGH = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+      precision highp float;
+      #else
+      precision mediump float;
+      #endif
+      `;
+
+    const PTS_VS = `attribute vec2 aOpen, aBud, aMisc; attribute vec3 aCol; attribute vec4 aDir;
+      uniform float uT, uGone, uPx, uFlip, uFade, uFrom; uniform vec2 uPtr; uniform vec3 uSpark;
       varying vec4 vCol; varying float vM, vUp, vDim;
       ${WAVE}
+      ${FRAME}
       const float RISE = .85;
-      vec3 view(vec3 p) {                             // model (z up) to view (x right, y up, z toward the viewer)
-        float c = cos(uRot), s = sin(uRot), ct = cos(uTilt), st = sin(uTilt);
-        vec3 q = vec3(p.x * c - p.y * s, p.z, -(p.x * s + p.y * c));
-        return vec3(q.x, q.y * ct - q.z * st, q.y * st + q.z * ct);
-      }
       void main() {
         float seed = aMisc.x, rise = clamp(uT / RISE, 0., 1.), tb = max(uT - RISE, 0.);
         vec3 burst = aDir.xyz * (1. - exp(-3. * tb)) + vec3(0., -.2 * tb * tb, 0.);
         float e = 1. - (1. - rise) * (1. - rise);
-        vec3 head = vec3((seed - .5) * .04, mix(-3., 0., e) - seed * .55 * (1. - rise), 0.);
+        vec3 head = vec3((seed - .5) * .04, mix(uFrom, 0., e) - seed * .55 * (1. - rise), 0.);   // the shell climbs from the far shore
         vec3 spark = uT < RISE ? head : burst;
         float m = clamp((uT - 2.1 - aMisc.y * .9) / 1.7, 0., 1.); m = m * m * (3. - 2. * m);
-        vec3 flower = view(mix(aBud, aOpen, smoothstep(3.4, 8.4, uT))), n = view(aNrm);
-        vec3 p = mix(spark, flower, m);
-        p.xy += vec2(-aDir.y, aDir.x) * sin(m * 3.14159) * .18;
-        float g = max(uGone, 0.), go = smoothstep(0., .16, g);        // a dismissed flower flies apart
+        vec2 f = mix(aBud, aOpen, smoothstep(2.6, 5., uT));            // a tight, twisted bud that unfurls into the bloom
+        vec3 p = mix(spark, vec3(turn(f), 0.), m);
+        p.xy += vec2(-aDir.y, aDir.x) * sin(m * 3.14159) * .18;          // a swirl as the sparks gather
+        float g = max(uGone, 0.), go = smoothstep(0., .16, g);          // a dismissed bloom flies apart
         p += (aDir.xyz * (1. - exp(-3.2 * g)) * .95 + vec3(0., -.22 * g * g, 0.)) * go;
         float w = 1. - p.z * .14;
         vec2 ndc = uC + vec2(p.x / uAsp, p.y) * uS / w;
         vec2 d = (ndc - uPtr) * vec2(uAsp, 1.); float l = length(d);
         if (l < .22) ndc += d / (l + .001) * pow(1. - l / .22, 2.) * .05 * m * (1. - go) / vec2(uAsp, 1.);
-        vUp = ndc.y - uSea; vDim = 1.;                                // height above the water: under it, nothing shows
-        if (uFlip > .5) {                                             // the same point again, mirrored in the water
+        vUp = ndc.y - uSea; vDim = 1.;                                  // height above the water: under it, nothing shows
+        if (uFlip > .5) {                                               // the same point again, mirrored in the water
           float dn = clamp(vUp / (uSea + 1.), 0., 1.), wob = wave(ndc.x, vUp, dn);
           ndc = vec2(ndc.x - wob * (.004 + .02 * dn), uSea - vUp);
           vDim = (1. - .7 * dn) * (.5 + .22 * wob) * (1. - smoothstep(.78, 1., dn));
         }
-        gl_Position = vec4(ndc, clamp(-p.z * .18, -1., 1.), 1.);
+        gl_Position = vec4(ndc, 0., 1.);
         float flick = .65 + .35 * sin(uT * 38. + seed * 60.);
         vec3 hot = mix(vec3(1., .95, .8), mix(vec3(1., .8, .45), uSpark, smoothstep(.15, 1., tb)), smoothstep(0., .3, tb));
-        float sb = (uT < RISE ? 1.3 : 1.9 * exp(-tb * .5)) * flick;
-        float diff = abs(dot(n, normalize(vec3(-.45, .7, .55))));
-        vec3 lit = aCol * (.22 + .92 * diff) * aMisc.z + aCol * pow(1. - abs(n.z), 4.) * .3;
-        vec3 ember = aCol * 2.4 * exp(-g * 1.8) * flick;              // its own colour, glowing as it scatters
+        float sb = (uT < RISE ? 1.3 : 1.9 * exp(-tb * .5)) * flick * (1. - .5 * smoothstep(1.2, 2.4, uT));   // dimming toward smoke
+        vec3 ember = aCol * 2.4 * exp(-g * 1.8) * flick;                // its own colours, glowing as it scatters
         float mm = m * (1. - go);
-        vCol = vec4(mix(mix(hot * sb, ember, go), lit, mm), mix(1., aDir.w, mm));
+        vCol = vec4(mix(mix(hot * sb, ember, go), aCol, mm), mix(1., aDir.w, mm) * uFade);
         vM = mm;
-        gl_PointSize = uPx * mix(1.4 + 2.4 * seed, 2.9 + 1.3 * seed, mm) / w;
+        gl_PointSize = uPx * mix(1.4 + 2.4 * seed, 2.4 + 1.1 * seed, mm) / w;
       }`;
-    const FS = `precision mediump float; varying vec4 vCol; varying float vM, vUp, vDim;
+    const PTS_FS = `precision mediump float; varying vec4 vCol; varying float vM, vUp, vDim;
       void main() { vec2 q = gl_PointCoord - .5; float d = dot(q, q); if (d > .25 || vUp < 0.) discard;
-        float soft = 1. - d * 4.;                     // sparks glow and add up; petals are solid discs
+        float soft = 1. - d * 4.;                       // sparks glow and add up; gathered, they are solid discs
         gl_FragColor = vec4(vCol.rgb * mix(soft * soft, .8 + .2 * soft, vM) * vCol.a, vM * vCol.a) * vDim; }`;
-    const sh = (t, src) => { const x = gl.createShader(t); gl.shaderSource(x, src); gl.compileShader(x); return x; };
-    const pr = gl.createProgram();
-    gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr);
-    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
-    gl.useProgram(pr);
-    const ATTR = [['aOpen', 3], ['aBud', 3], ['aNrm', 3], ['aCol', 3], ['aDir', 4], ['aMisc', 3]].map(([name, size]) => ({ loc: gl.getAttribLocation(pr, name), size }));
-    for (const a of ATTR) gl.enableVertexAttribArray(a.loc);
-    const U = {};
-    for (const u of ['uT', 'uGone', 'uRot', 'uTilt', 'uAsp', 'uS', 'uPx', 'uC', 'uPtr', 'uSpark', 'uSea', 'uClock', 'uFlip']) U[u] = gl.getUniformLocation(pr, u);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthFunc(gl.LEQUAL);
 
-    // the sea: whatever the film shows above the waterline, mirrored and rippling, added to the dark water as light
-    const wp = gl.createProgram();
-    gl.attachShader(wp, sh(gl.VERTEX_SHADER, `attribute vec2 aQ; uniform mediump float uSea; varying vec2 vP;
-      void main() { vP = vec2(aQ.x, mix(-1., uSea, aQ.y)); gl_Position = vec4(vP, 0., 1.); }`));
-    gl.attachShader(wp, sh(gl.FRAGMENT_SHADER, `precision mediump float; ${WAVE} varying vec2 vP; uniform sampler2D uA, uB; uniform float uMix; uniform vec4 uFit;
+    // the sea: the film mirrored and rippling, with the bloom in front of it, added to the dark water as light
+    const SEA_VS = `attribute vec2 aQ; uniform mediump float uSea; varying vec2 vP;
+      void main() { vP = vec2(aQ.x, mix(-1., uSea, aQ.y)); gl_Position = vec4(vP, 0., 1.); }`;
+    const SEA_FS = `precision mediump float; ${WAVE} ${FRAME}
+      varying vec2 vP; uniform sampler2D uA, uB, uF; uniform float uMix, uFOp; uniform vec4 uFit;
       void main() {
         float h = uSea - vP.y, dn = clamp(h / (uSea + 1.), 0., 1.), wob = wave(vP.x, h, dn);
-        vec2 hero = vec2((vP.x + wob * (.004 + .02 * dn)) * .5 + .5, .5 - (uSea + h * (1. + .06 * wob)) * .5);   // the point above the water that shows here
-        vec2 uv = hero * uFit.xy + uFit.zw;
+        vec2 above = vec2(vP.x + wob * (.004 + .02 * dn), uSea + h * (1. + .06 * wob));   // the point above the water that shows here
+        vec2 uv = vec2(above.x * .5 + .5, .5 - above.y * .5) * uFit.xy + uFit.zw;
         vec3 c = mix(texture2D(uA, uv).rgb, texture2D(uB, uv).rgb, uMix);
+        vec2 lo = local(above);
+        vec4 fl = texture2D(uF, vec2(lo.x, -lo.y) * .5 + .5) * uFOp;                       // the bloom, where it stands in front of that point
+        c = c * (1. - fl.a) + fl.rgb;
         float glint = smoothstep(.55, 1., sin(h * mix(90., 22., dn) * 2.2 - uClock * .6 + vP.x * 3.)) * (1. - .6 * dn);   // faint light on the swell
         gl_FragColor = vec4((c * (1. - .7 * dn) * (.62 + .24 * wob) + vec3(.012, .02, .034) * glint) * (1. - smoothstep(.78, 1., dn)), 0.);
-      }`));
-    gl.bindAttribLocation(wp, 0, 'aQ'); gl.linkProgram(wp);
-    if (!gl.getProgramParameter(wp, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(wp));
-    const WU = {};
-    for (const u of ['uSea', 'uClock', 'uMix', 'uFit', 'uA', 'uB']) WU[u] = gl.getUniformLocation(wp, u);
-    const quad = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 0, 1, 0, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const reel = [0, 1].map(i => {                   // the film's two reels, as textures
+      }`;
+
+    // the photograph, on a square through the bloom's frame; the petals part round the pointer
+    const PIC_VS = `attribute vec2 aQ; uniform mediump float uLine; varying vec2 vL; varying float vUp;
+      ${FRAME}
+      void main() { vec2 ndc = uC + vec2(turn(aQ).x / uAsp, turn(aQ).y) * uS; vL = aQ; vUp = ndc.y - uLine; gl_Position = vec4(ndc, 0., 1.); }`;
+    const PIC_FS = `precision mediump float; varying vec2 vL; varying float vUp; uniform sampler2D uTex; uniform float uOp; uniform vec2 uPtrL;
+      void main() {
+        if (vUp < 0.) discard;
+        vec2 d = vL - uPtrL; float l = length(d);
+        vec2 p = vL - d / (l + .001) * .1 * exp(-l * l / .06);
+        gl_FragColor = texture2D(uTex, vec2(p.x, -p.y) * .5 + .5) * uOp;
+      }`;
+
+    // light smoke about the bloom: drifting noise, thicker under it and round its rim, rising slowly
+    const FOG_VS = `attribute vec2 aQ; uniform mediump vec2 uCF; uniform mediump float uSF, uAspF, uLineF; varying vec2 vL; varying float vUp;
+      void main() { vec2 f = aQ * 2.4, ndc = uCF + vec2(f.x / uAspF, f.y) * uSF; vL = f; vUp = ndc.y - uLineF; gl_Position = vec4(ndc, 0., 1.); }`;
+    const FOG_FS = `${HIGH} varying vec2 vL; varying float vUp; uniform float uTime, uAmt; uniform vec3 uTint;
+      float hash(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+      float noise(vec2 p) { vec2 i = floor(p), f = fract(p), u = f * f * (3. - 2. * f);
+        return mix(mix(hash(i), hash(i + vec2(1., 0.)), u.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), u.x), u.y); }
+      float fbm(vec2 p) { float a = .5, s = 0.; for (int k = 0; k < 4; k++) { s += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= .5; } return s; }
+      void main() {
+        if (vUp < 0.) discard;
+        float r = length(vL);
+        vec2 q = vL * 1.25 - vec2(0., uTime * .12);
+        vec2 w = vec2(fbm(q + vec2(0., uTime * .05)), fbm(q + vec2(5.2, 1.3) - uTime * .04));
+        float n = fbm(q + 1.7 * w);
+        float around = smoothstep(.72, 1.02, r) * (1. - smoothstep(1.25, 2.3, r));
+        float under = (1. - smoothstep(-.4, .7, vL.y)) * (1. - smoothstep(1.5, 2.35, r)) * .8;
+        float a = smoothstep(.42, .92, n) * max(around, under) * uAmt;
+        gl_FragColor = vec4(mix(vec3(.58, .6, .66), uTint, .35) * a, a * .9);
+      }`;
+
+    const sh = (t, src) => {
+      const x = gl.createShader(t); gl.shaderSource(x, src); gl.compileShader(x);
+      if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x));
+      return x;
+    };
+    const program = (vs, fs, attrs) => {
+      const p = gl.createProgram();
+      gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+      attrs.forEach((a, i) => gl.bindAttribLocation(p, i, a));
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      const u = {};
+      for (let i = 0, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); i < n; i++) { const name = gl.getActiveUniform(p, i).name; u[name] = gl.getUniformLocation(p, name); }
+      return { p, u };
+    };
+    const PTS = program(PTS_VS, PTS_FS, ['aOpen', 'aBud', 'aCol', 'aDir', 'aMisc']);
+    const SEA = program(SEA_VS, SEA_FS, ['aQ']), PIC = program(PIC_VS, PIC_FS, ['aQ']), FOG = program(FOG_VS, FOG_FS, ['aQ']);
+    const attribs = n => { for (let a = 0; a < 5; a++) a < n ? gl.enableVertexAttribArray(a) : gl.disableVertexAttribArray(a); };
+    const buffer = data => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); return b; };
+    const seaQuad = buffer([-1, 0, 1, 0, -1, 1, 1, 1]), square = buffer([-1, -1, 1, -1, -1, 1, 1, 1]);
+    const texture = (unit, filter) => {
       const tex = gl.createTexture();
-      gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, tex);
-      for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array(3));
-      return { tex, from: null, at: -1 };
-    });
-
-    // flowers are built off the main thread where a worker is allowed, so a launch never stalls the page
-    const clouds = [], waiting = {};
-    const upload = (i, d) => {
-      const buf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, d, gl.STATIC_DRAW);
-      clouds[i] = { buf, n: d.length / STR };
-      for (const done of waiting[i] || []) done();
-      delete waiting[i];
+      gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex);
+      for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, filter], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+      return tex;
     };
-    const build = i => upload(i, buildFlower(THEMES[i].flower, N, phone));
-    let worker = null;
-    try {
-      const src = `onmessage = e => { const d = (${buildFlower})(e.data.name, e.data.n, e.data.phone); postMessage({ i: e.data.i, d }, [d.buffer]); };`;
-      worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
-      worker.onmessage = e => upload(e.data.i, e.data.d);
-      worker.onerror = () => { worker = null; for (const i of Object.keys(waiting)) build(+i); };
-    } catch (e) { worker = null; }
-    const ready = (i, now) => new Promise(done => {
-      if (clouds[i]) return done();
-      if (now || !worker) { build(i); return done(); }
-      if (waiting[i]) return void waiting[i].push(done);
-      waiting[i] = [done];
-      worker.postMessage({ i, name: THEMES[i].flower, n: N, phone });
-    });
+    const reel = [0, 1].map(i => ({ tex: texture(i, gl.LINEAR), from: null, at: -1 }));   // the film's two reels
+    const none = texture(2, gl.LINEAR);                                                    // no bloom yet
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    let cur = null, prev = null, cx, cy, S, asp, px, sea = .66;
-    const show = (i, t0) => { if (cur) prev = { i: cur.i, t0: cur.t0, goneAt: t0 + RISE }; cur = { i, t0 }; };
-    // top, bottom: the free band between the words and the facts, in px. seaAt: the waterline, as a share of the height.
-    // The flower stands just above the water, so that its reflection lies right under it.
-    function resize(top, bottom, seaAt) {
-      const r = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 1.75);
-      canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
-      asp = r.width / r.height; sea = seaAt;
-      if (r.width < 720) {
-        const floor = Math.min(bottom, sea * r.height), radius = Math.max(48, Math.min((floor - top) * .46, r.width * .3));
-        cx = 0; cy = 1 - 2 * (floor - radius) / r.height; S = radius / (r.height / 2);
-      } else { cx = .44; S = Math.min(.46, .36 * asp); cy = 1 - 2 * sea + S; }
-      px = dpr * clamp(S * r.height / 396, .75, 1.6);
+    // a bloom: its photograph as a texture, and the sparks' places, read from the photograph itself
+    const blooms = [], loading = [];
+    function make(img) {
+      const tex = texture(2, gl.LINEAR), pot = !(img.naturalWidth & (img.naturalWidth - 1)) && !(img.naturalHeight & (img.naturalHeight - 1));
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      if (pot) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); }
+      const G = 256, c = document.createElement('canvas'), g2 = c.getContext('2d', { willReadFrequently: true });
+      c.width = c.height = G; g2.drawImage(img, 0, 0, G, G);
+      const px = g2.getImageData(0, 0, G, G).data, cells = [];
+      for (let k = 0; k < G * G; k++) if (px[k * 4 + 3] > 60) cells.push(k);
+      if (!cells.length) for (let k = 0; k < G * G; k++) cells.push(k);
+      const data = new Float32Array(N * STR);
+      for (let j = 0; j < N; j++) {
+        const k = cells[Math.random() * cells.length | 0], x = (k % G + Math.random()) / G * 2 - 1, y = 1 - ((k / G | 0) + Math.random()) / G * 2;
+        const r = Math.min(1, Math.hypot(x, y)), tw = (1 - r) * 2.4, pull = .22 + .2 * r;        // in the bud: drawn in and twisted, most at the heart
+        const an = Math.random() * TAU, z = rand(-1, 1), q = Math.sqrt(1 - z * z), sp = 2.6 * Math.pow(Math.random(), .3);
+        data.set([x, y, (x * Math.cos(tw) - y * Math.sin(tw)) * pull, (x * Math.sin(tw) + y * Math.cos(tw)) * pull,
+          px[k * 4] / 255, px[k * 4 + 1] / 255, px[k * 4 + 2] / 255,
+          q * Math.cos(an) * sp, q * Math.sin(an) * sp, z * sp * .6, px[k * 4 + 3] / 255,
+          Math.random(), r * .75 + Math.random() * .25], j * STR);
+      }
+      return { tex, buf: buffer(data), n: N };
     }
-    const one = (o, now, gone, parX, parY) => {
-      const cl = clouds[o.i], th = THEMES[o.i], t = (now - o.t0) / 1000;
-      gl.bindBuffer(gl.ARRAY_BUFFER, cl.buf);
-      let off = 0;
-      for (const a of ATTR) { gl.vertexAttribPointer(a.loc, a.size, gl.FLOAT, false, STR * 4, off * 4); off += a.size; }
-      if (t > 2.1 && gone <= 0) gl.enable(gl.DEPTH_TEST); else gl.disable(gl.DEPTH_TEST);
-      gl.uniform1f(U.uT, t); gl.uniform1f(U.uGone, gone);
-      gl.uniform1f(U.uRot, (th.spin ? .6 + t * .1 : .3 * Math.sin(t * .45)) + parX * .25); gl.uniform1f(U.uTilt, th.tilt - parY * .1);
-      gl.uniform3fv(U.uSpark, th.spark);
-      gl.drawArrays(gl.POINTS, 0, cl.n);
+    const ready = i => blooms[i] ? Promise.resolve() : loading[i] || (loading[i] = new Promise((done, fail) => {
+      const img = new Image();
+      img.onload = () => { try { blooms[i] = make(img); done(); } catch (e) { fail(e); } };
+      img.onerror = () => { loading[i] = null; fail(new Error('no picture for ' + THEMES[i].flower)); };
+      img.src = THEMES[i].img;
+    }));
+
+    let cur = null, prev = null, cx = .2, cy = 0, S = .3, asp = 1, px = 1, sea = .66, from = -2;
+    const show = (i, t0) => { if (cur) prev = { i: cur.i, t0: cur.t0, goneAt: t0 + RISE }; cur = { i, t0 }; };
+    // x, y, r: where the bloom floats in the canvas and how big it is, in px. seaAt: the waterline, as a share of the height.
+    function resize(x, y, r, seaAt) {
+      const box = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 1.75);
+      canvas.width = Math.round(box.width * dpr); canvas.height = Math.round(box.height * dpr);
+      asp = box.width / box.height; sea = seaAt;
+      cx = x / box.width * 2 - 1; cy = 1 - y / box.height * 2; S = r / (box.height / 2);
+      from = (1 - 2 * sea - cy) / S - .1;              // the far shore, in bloom radii under the centre: shells start there
+      px = dpr * clamp(S * box.height / 396, .75, 1.6);
+    }
+    // how a bloom stands at a moment: it floats (a slow bob and drift), turns slowly and rocks a little
+    const pose = (o, now, parX, parY) => {
+      const k = now / 1000;
+      return {
+        t: (now - o.t0) / 1000,
+        c: [cx + Math.sin(k * .41 + o.i) * .006, cy + Math.sin(k * .83 + o.i * 2) * .016 + Math.sin(k * .29) * .008],
+        rot: .3 + (now - o.t0) / 1000 * .045 + parX * .18,
+        lean: Math.cos(.16 + .07 * Math.sin(k * .6 + o.i) - parY * .1),
+      };
     };
-    // now: scene clock in ms; ptr: pointer in clip space; film: { src: the two reels (video or still), mix, fit } from filmLook()
+    const frame = (u, p) => { gl.uniform2f(u.uC, p.c[0], p.c[1]); gl.uniform1f(u.uS, S); gl.uniform1f(u.uAsp, asp); gl.uniform1f(u.uRot, p.rot); gl.uniform1f(u.uLean, p.lean); };
+    const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+
+    // now: scene clock in ms; ptr: pointer in clip space (9 when away); film: { src: the two reels, mix, fit } from filmLook()
     function draw(now, ptrX, ptrY, parX, parY, film) {
       const line = 1 - 2 * sea, clock = now / 1000 % (20 * Math.PI);   // the waves repeat every 20 pi seconds, which keeps the numbers small for phone GPUs
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      for (const a of ATTR) gl.disableVertexAttribArray(a.loc);       // first the film's reflection, across the whole sea
-      gl.useProgram(wp); gl.disable(gl.DEPTH_TEST);
-      gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-      reel.forEach((rl, i) => {
-        const from = film.src[i], at = from && from.tagName === 'VIDEO' ? from.currentTime : 0;
-        gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, rl.tex);
-        if (from && (rl.from !== from || rl.at !== at)) try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, from); rl.from = from; rl.at = at; } catch (e) { /* frame not ready: keep the last one */ }
-      });
-      gl.uniform1i(WU.uA, 0); gl.uniform1i(WU.uB, 1); gl.uniform1f(WU.uMix, film.mix); gl.uniform4fv(WU.uFit, film.fit);
-      gl.uniform1f(WU.uSea, line); gl.uniform1f(WU.uClock, clock);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      gl.disableVertexAttribArray(0);
-      for (const a of ATTR) gl.enableVertexAttribArray(a.loc);
-      gl.useProgram(pr);
-      gl.uniform1f(U.uAsp, asp); gl.uniform1f(U.uS, S); gl.uniform1f(U.uPx, px);
-      gl.uniform2f(U.uC, cx, cy); gl.uniform2f(U.uPtr, ptrX, ptrY);
-      gl.uniform1f(U.uSea, line); gl.uniform1f(U.uClock, clock);
       const g = prev ? (now - prev.goneAt) / 1000 : 0;
       if (g > 2.4) prev = null;
-      for (const flip of [1, 0]) {                    // the reflection, then the flower itself
-        gl.uniform1f(U.uFlip, flip);
-        if (prev) one(prev, now, g, parX, parY);
-        if (cur) one(cur, now, -1, parX, parY);
+      const B = cur && blooms[cur.i], P = B && pose(cur, now, parX, parY), Q = prev && blooms[prev.i] && pose(prev, now, parX, parY);
+      const photo = P ? smooth(4.9, 6.3, P.t) : 0;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+
+      gl.useProgram(SEA.p); attribs(1);                // the sea
+      gl.bindBuffer(gl.ARRAY_BUFFER, seaQuad); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      reel.forEach((rl, i) => {
+        const src = film.src[i], at = src && src.tagName === 'VIDEO' ? src.currentTime : 0;
+        gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, rl.tex);
+        if (src && (rl.from !== src || rl.at !== at)) try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); rl.from = src; rl.at = at; } catch (e) { /* frame not ready: keep the last one */ }
+      });
+      gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, B ? B.tex : none);
+      gl.uniform1i(SEA.u.uA, 0); gl.uniform1i(SEA.u.uB, 1); gl.uniform1i(SEA.u.uF, 2);
+      gl.uniform1f(SEA.u.uMix, film.mix); gl.uniform4fv(SEA.u.uFit, film.fit);
+      gl.uniform1f(SEA.u.uSea, line); gl.uniform1f(SEA.u.uClock, clock); gl.uniform1f(SEA.u.uFOp, photo);
+      frame(SEA.u, P || { c: [cx, cy], rot: 0, lean: 1 });
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      gl.useProgram(PTS.p); attribs(5);
+      gl.uniform1f(PTS.u.uPx, px); gl.uniform2f(PTS.u.uPtr, ptrX, ptrY); gl.uniform1f(PTS.u.uFrom, from);
+      gl.uniform1f(PTS.u.uSea, line); gl.uniform1f(PTS.u.uClock, clock);
+      const dots = (o, p, gone, fade, flip) => {
+        const b = blooms[o.i];
+        gl.bindBuffer(gl.ARRAY_BUFFER, b.buf);
+        let off = 0;
+        LAYOUT.forEach((n, a) => { gl.vertexAttribPointer(a, n, gl.FLOAT, false, STR * 4, off * 4); off += n; });
+        frame(PTS.u, p);
+        gl.uniform1f(PTS.u.uT, p.t); gl.uniform1f(PTS.u.uGone, gone); gl.uniform1f(PTS.u.uFade, fade); gl.uniform1f(PTS.u.uFlip, flip);
+        gl.uniform3fv(PTS.u.uSpark, THEMES[o.i].spark);
+        gl.drawArrays(gl.POINTS, 0, b.n);
+      };
+      if (Q) dots(prev, Q, g, 1, 1);                   // the sparks' reflections first
+      if (P && photo < 1) dots(cur, P, -1, 1 - photo, 1);
+
+      if (P) {                                         // smoke behind the bloom
+        const amt = .3 + .55 * smooth(.9, 1.7, P.t) * (1 - smooth(3.2, 5.4, P.t));
+        gl.useProgram(FOG.p); attribs(1);
+        gl.bindBuffer(gl.ARRAY_BUFFER, square); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.uniform2f(FOG.u.uCF, P.c[0], P.c[1]); gl.uniform1f(FOG.u.uSF, S); gl.uniform1f(FOG.u.uAspF, asp); gl.uniform1f(FOG.u.uLineF, line);
+        gl.uniform1f(FOG.u.uTime, now / 1000 % 200); gl.uniform1f(FOG.u.uAmt, amt); gl.uniform3fv(FOG.u.uTint, THEMES[cur.i].spark);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+
+      gl.useProgram(PTS.p); attribs(5);                // the sparks, or the bloom they have built
+      if (Q) dots(prev, Q, g, 1, 0);
+      if (P && photo < 1) dots(cur, P, -1, 1 - photo, 0);
+
+      if (photo > 0) {                                 // and the photograph, fading in over them
+        gl.useProgram(PIC.p); attribs(1);
+        gl.bindBuffer(gl.ARRAY_BUFFER, square); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, B.tex); gl.uniform1i(PIC.u.uTex, 2);
+        frame(PIC.u, P); gl.uniform1f(PIC.u.uLine, line); gl.uniform1f(PIC.u.uOp, photo);
+        let pl = [9, 9];
+        if (ptrX < 2) {                                // the pointer, in the bloom's own frame
+          const vx = (ptrX - P.c[0]) * asp / S, vy = (ptrY - P.c[1]) / S / P.lean, c = Math.cos(P.rot), s = Math.sin(P.rot);
+          pl = [vx * c + vy * s, -vx * s + vy * c];
+        }
+        gl.uniform2f(PIC.u.uPtrL, pl[0], pl[1]);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
     }
     return { ready, show, resize, draw, at: () => [(cx + 1) / 2, (cy + 1) / 2] };
@@ -1519,10 +1468,25 @@ html.still [data-motion] { display: none; }
   const roseEl = $('#rose');
   let garden = null;
   try { garden = createGarden(roseEl); } catch (e) { console.warn('flowers off:', e.message); }
+  // Where the bloom floats: just above the water, so its reflection lies under it. On wide screens it sits beside the
+  // words, toward the fireworks, or under the words when that leaves a bigger bloom; on phones, under the words.
   const sizeGarden = () => {
     if (!garden) return;
-    const top = roseEl.getBoundingClientRect().top;
-    garden.resize($('.hero__text').getBoundingClientRect().bottom - top, $('.hero__foot').getBoundingClientRect().top - top, $('.film__sky').offsetHeight / filmEl.offsetHeight);
+    const box = roseEl.getBoundingClientRect(), w = box.width, h = box.height, sea = skyEl.offsetHeight / filmEl.offsetHeight, wl = sea * h;
+    const kids = [...$('.hero__text').children].map(el => el.getBoundingClientRect());
+    const right = Math.max(...kids.map(r => r.right)) - box.left, below = Math.max(...kids.map(r => r.bottom)) - box.top;
+    let x, y, r;
+    if (w >= 720) {
+      const gap = h * .035, want = clamp(Math.min(h * .21, w * .17), 90, 240);
+      const beside = Math.min(want, (w - 36 - right - 44) / 2), under = Math.min(want, (wl - gap - below - 28) / 2);
+      if (beside >= under) { r = beside; x = clamp(w * .62, right + 44 + r, w - 36 - r); }
+      else { r = under; x = clamp(w * .64, r + 36, w - 36 - r); }
+      y = wl - gap - r;
+    } else {
+      r = clamp(Math.min((wl - 12 - below) * .45, w * .34), 52, 170);
+      x = w / 2; y = wl - 12 - r;
+    }
+    garden.resize(x, y, Math.max(r, 40), sea);
   };
 
   // ================= film: the hero's video, and what the sea needs to mirror it =================
@@ -1538,7 +1502,7 @@ html.still [data-motion] { display: none; }
   // reduced motion: a still page with one flower already open, native cursor, nothing below this line runs
   if (reduced) {
     document.documentElement.classList.add('still');
-    if (garden) garden.ready(theme, true).then(() => garden.show(theme, -60000));
+    if (garden) garden.ready(theme).then(() => { garden.show(theme, -60000); still(); }, () => {});
     const still = () => {
       if (innerWidth < 2 || innerHeight < 2) return;
       W = innerWidth; H = innerHeight; drawSky(); seedLand(); grow = 1; drawLand(0); lightWords(); fitBars();
@@ -1547,7 +1511,7 @@ html.still [data-motion] { display: none; }
     };
     poster.addEventListener('load', () => still());   // the still film is only a poster here; mirror it once it has arrived
     addEventListener('resize', still);
-    addEventListener('scroll', () => drawFlora(0, true), { passive: true });    // the plants are drawn on a fixed canvas, so they follow the scroll by hand
+    addEventListener('scroll', () => drawFlora(0, true), { passive: true });    // the lanterns are drawn on a fixed canvas, so they follow the scroll by hand
     still();
     return;
   }
@@ -1759,7 +1723,6 @@ html.still [data-motion] { display: none; }
     sky = Math.max(sky, .09 * size); skyHue = t.hue; skySat = t.sat;
     if (stars.length > 3200) stars.splice(0, stars.length - 3200);
     if (ink) ink.puff(x / W, 1 - y / H, t.spark.map(c => c * .09), 55 * v);
-    wake(x, y, 260 * size);
   }
   function sizeLight() {
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -1850,7 +1813,7 @@ html.still [data-motion] { display: none; }
   function bloom(i) {
     asked = i;
     if (!garden) { later(850, () => setTheme(i)); return; }
-    garden.ready(i).then(() => { garden.show(i, T); bloomAt = T; bloomTheme = i; });
+    garden.ready(i).then(() => { garden.show(i, T); bloomAt = T; bloomTheme = i; }, () => later(850, () => setTheme(i)));
   }
 
   // ================= the show: four seconds of fireworks, then a thank-you =================
@@ -1865,6 +1828,7 @@ html.still [data-motion] { display: none; }
   function startShow() {
     if (showOn) return;
     showOn = true;
+    tally('ev-show');
     document.body.classList.add('show');
     // at: ms after the button. Show shells climb fast (about 0.6 s), so the first opens almost at once and the last by 3.9 s.
     const shot = (at, x, y, th, kind, size) => later(at, () => launch(W * x, H * y, th, kind, size, rand(540, 680)), 'show');
@@ -1968,11 +1932,10 @@ html.still [data-motion] { display: none; }
     if (!paused && !held) {
       T += dt * 16.7;
       for (let i = queue.length - 1; i >= 0; i--) if (queue[i].at <= T) queue.splice(i, 1)[0].fn();
-      if (bloomTheme >= 0 && T - bloomAt >= 850) {    // the hero shell opens: the page takes its colour, and the buds near it open
+      if (bloomTheme >= 0 && T - bloomAt >= 850) {    // the hero shell opens: the page takes its colour
         const r = roseEl.getBoundingClientRect(), [x, y] = garden.at();
         setTheme(bloomTheme);
         if (ink && onScreen(roseEl)) ink.puff((r.left + x * r.width) / W, 1 - (r.bottom - y * r.height) / H, THEMES[bloomTheme].spark.map(c => c * .12), 420);
-        wake(r.left + x * r.width, r.bottom - y * r.height, 440);
         bloomTheme = -1;
       }
       if (ink) ink.frame(Math.min(dt / 60, .033));
@@ -1981,7 +1944,7 @@ html.still [data-motion] { display: none; }
       drawLight(dt);
       if (onScreen(land)) drawLand(dt);
       if (onScreen(pipeSvg)) drawPulses();
-    } else if (scrollY !== lastScroll) drawFlora(0);  // paused: the plants still have to follow the scroll
+    } else if (scrollY !== lastScroll) drawFlora(0);  // paused: the lanterns still have to follow the scroll
     lightWords();
     if (moved) {
       moved = false;
@@ -2003,7 +1966,7 @@ html.still [data-motion] { display: none; }
   makePulses();
   requestAnimationFrame(() => document.documentElement.classList.add('themed'));   // colour changes ease from now on
   requestAnimationFrame(frame);
-  if (garden) for (let i = 0; i < THEMES.length; i++) garden.ready(i);             // the other flowers build in the background
+  if (garden) setTimeout(() => THEMES.forEach((_, i) => garden.ready(i).catch(() => {})), 2500);   // the other flowers load in the background
 })();
 </script>
 

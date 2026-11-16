@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Visitors · Prateek Kumar Sahu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,300..500&family=Hanken+Grotesk:wght@400;500&display=swap">
+<style>
+/* The visitors page for prtksahu.github.io/MewWeb. Nothing on the site links here.
+   It reads the anonymous tallies the site keeps on two free counter services and adds them up.
+   One series everywhere, so one mark colour; numbers and labels stay in the text colours. */
+:root {
+  color-scheme: dark;
+  --bg: #050404; --card: #100d0d; --line: rgba(246, 241, 234, .12);
+  --ink: #f6f1ea; --text: #d3cdc6; --muted: #958e87;
+  --mark: #ff5c76; --mark-dim: rgba(255, 92, 118, .38); --track: rgba(246, 241, 234, .09);
+  --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --sans: "Hanken Grotesk", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --gut: clamp(16px, 4vw, 48px);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; color: var(--text); font: 400 1rem/1.5 var(--sans); -webkit-font-smoothing: antialiased;
+  background: radial-gradient(70% 50% at 80% 0%, rgba(232, 23, 63, .12), transparent 70%), var(--bg);
+}
+h1, h2, p, dl, dd, table { margin: 0; }
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--mark); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1200px; margin-inline: auto; padding-inline: var(--gut); }
+.label { font-size: .8125rem; color: var(--muted); }
+
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; padding-block: clamp(28px, 6vh, 56px) 24px; }
+h1 { font: 380 clamp(2.5rem, 6vw, 4.25rem)/1 var(--display); letter-spacing: -.03em; color: var(--ink); }
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.pill {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line);
+  background: none; font-weight: 500; font-size: .9375rem; text-decoration: none; cursor: pointer; transition: background .2s, border-color .2s, transform .15s;
+}
+.pill:hover { background: rgba(246, 241, 234, .08); border-color: rgba(246, 241, 234, .3); }
+.pill:active { transform: scale(.97); }
+.pill[aria-busy="true"] { opacity: .6; pointer-events: none; }
+
+main { display: grid; gap: 16px; padding-bottom: 56px; }
+.card { padding: 24px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+h2 { font: 500 1.0625rem/1.3 var(--sans); color: var(--ink); }
+.card > .label { margin-top: 3px; }
+
+/* headline numbers */
+.tiles { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
+.tile { padding: 18px 18px 16px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); transition: border-color .2s, transform .2s; }
+.tile:hover { border-color: rgba(246, 241, 234, .28); transform: translateY(-2px); }
+.tile dt { font-size: .8125rem; color: var(--muted); }
+.tile dd { margin-top: 6px; font: 380 clamp(1.75rem, 2.6vw, 2.5rem)/1 var(--display); letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tile small { display: block; margin-top: 6px; font-size: .75rem; line-height: 1.3; color: var(--muted); }
+.tile.lead { grid-column: span 2; }
+.tile.lead dd { font-size: clamp(2.5rem, 4.4vw, 3.75rem); }
+@media (max-width: 1023px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } .tile.lead { grid-column: span 2; } }
+@media (max-width: 599px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile.lead { grid-column: span 2; } }
+
+/* visits by day: thin bars on one baseline, quiet grid, hover for the exact number */
+.plot { position: relative; margin-top: 18px; padding-left: 34px; }
+.plot__grid { position: absolute; inset: 0 0 26px 34px; }
+.plot__grid i { position: absolute; left: 0; right: 0; border-top: 1px solid var(--track); }
+.plot__grid b { position: absolute; right: 100%; margin-right: 8px; transform: translateY(-50%); font: 400 .75rem/1 var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; }
+.bars { position: relative; display: flex; align-items: flex-end; gap: 2px; height: 220px; }
+.col { flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; border-radius: 6px; cursor: default; }
+.col:hover, .col:focus-visible { background: rgba(246, 241, 234, .05); }
+.col span { width: min(26px, 62%); min-height: 2px; border-radius: 4px 4px 0 0; background: var(--mark-dim); transition: height .6s cubic-bezier(.2, .8, .2, 1), background .2s; }
+.col.now span, .col:hover span, .col:focus-visible span { background: var(--mark); }
+.days { display: flex; gap: 2px; height: 26px; align-items: flex-end; }
+.days span { flex: 1; text-align: center; font-size: .75rem; color: var(--muted); white-space: nowrap; overflow: visible; }
+#tip {
+  position: fixed; z-index: 5; pointer-events: none; padding: 7px 10px; border-radius: 9px; background: #1d1818; border: 1px solid rgba(246, 241, 234, .2);
+  font-size: .8125rem; color: var(--ink); white-space: nowrap; opacity: 0; transform: translate(-50%, calc(-100% - 10px)); transition: opacity .12s;
+}
+#tip.on { opacity: 1; }
+details { margin-top: 14px; }
+summary { width: fit-content; padding: 6px 0; font-size: .875rem; color: var(--muted); cursor: pointer; }
+summary:hover { color: var(--ink); }
+table { margin-top: 8px; border-collapse: collapse; font-size: .875rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 5px 20px 5px 0; text-align: left; font-weight: 400; border-bottom: 1px solid var(--track); }
+th { color: var(--muted); }
+td:last-child, th:last-child { text-align: right; padding-right: 0; }
+
+/* breakdowns: one row per group, bar length = share of visits */
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 899px) { .trio { grid-template-columns: minmax(0, 1fr); } }
+.rows { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 12px; }
+.rows li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px 12px; align-items: baseline; }
+.rows .n { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.rows .p { min-width: 3.2em; text-align: right; font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rows .t { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.rows .t i { display: block; height: 100%; border-radius: 3px; background: var(--mark); transition: width .7s cubic-bezier(.2, .8, .2, 1); }
+.rows li:hover .t i { background: #ff8a9c; }
+
+.notes { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px 40px; }
+@media (max-width: 899px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.notes p { margin-top: 8px; font-size: .9375rem; max-width: 62ch; }
+.notes .pill { margin-top: 14px; }
+#state { min-height: 1.4em; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top wrap">
+  <div>
+    <p class="label">prtksahu.github.io/MewWeb</p>
+    <h1>Visitors</h1>
+  </div>
+  <div class="tools">
+    <span class="label" id="state" aria-live="polite">Loading the counts</span>
+    <button class="pill" id="refresh" type="button">Refresh</button>
+    <a class="pill" href="./">Open the site</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <dl class="tiles">
+    <div class="tile lead"><dt>Visits, all time</dt><dd data-k="visits">–</dd><small>Every time the page is opened and stays open for a moment</small></div>
+    <div class="tile"><dt>Visitors</dt><dd data-k="visitors">–</dd><small>Browsers seen for the first time</small></div>
+    <div class="tile"><dt>Today</dt><dd data-k="today">–</dd><small>Indian time</small></div>
+    <div class="tile"><dt>Last 7 days</dt><dd data-k="week">–</dd><small>Including today</small></div>
+    <div class="tile"><dt>Résumé opens</dt><dd data-k="ev-resume">–</dd><small>The résumé sheet was opened</small></div>
+    <div class="tile"><dt>LinkedIn clicks</dt><dd data-k="ev-linkedin">–</dd><small>Any LinkedIn link on the page</small></div>
+  </dl>
+
+  <section class="card">
+    <h2>Visits by day</h2>
+    <p class="label">The last 14 days, by the date in India. Point at a bar for its number.</p>
+    <div class="plot">
+      <div class="plot__grid" id="grid" aria-hidden="true"></div>
+      <div class="bars" id="bars"></div>
+      <div class="days" id="days" aria-hidden="true"></div>
+    </div>
+    <details>
+      <summary>Show the daily numbers as a table</summary>
+      <table><thead><tr><th>Day</th><th>Visits</th></tr></thead><tbody id="daytable"></tbody></table>
+    </details>
+  </section>
+
+  <div class="trio">
+    <section class="card"><h2>Device</h2><p class="label">Share of all visits</p><ul class="rows" data-group="dev" data-names="desktop:Laptop or desktop,phone:Phone,tablet:Tablet"></ul></section>
+    <section class="card"><h2>Where they came from</h2><p class="label">The page they followed a link from</p><ul class="rows" data-group="src" data-names="direct:Typed, bookmarked or unknown,linkedin:LinkedIn,github:GitHub,search:A search engine,other:Another site"></ul></section>
+    <section class="card"><h2>Part of the world</h2><p class="label">From the visitor's time zone, not their address</p><ul class="rows" data-group="reg" data-names="india:India,asia:Rest of Asia,europe:Europe,americas:The Americas,africa:Africa,oceania:Australia and the Pacific,other:Unknown"></ul></section>
+  </div>
+
+  <section class="card notes">
+    <div>
+      <h2>How this is counted</h2>
+      <p>The site adds one to a handful of anonymous tallies when someone opens it: the total, the day, the kind of device, where they came from and their part of the world. It also counts when the résumé is opened, a LinkedIn link is clicked or the fireworks are launched (<span id="shows">–</span> so far).</p>
+      <p>No names, addresses, cookies or ids are stored, so this page cannot tell you who a visitor was. The tallies live on two free public counter services. They need no account, but they come with no guarantee, and someone who reads the page's code could add to them.</p>
+    </div>
+    <div>
+      <h2>Your own visits</h2>
+      <p id="mine"></p>
+      <button class="pill" id="me" type="button"></button>
+    </div>
+  </section>
+</main>
+<div id="tip" role="status"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const SOURCES = ['https://abacus.jasoncameron.dev/get/mewweb/', 'https://countapi.mileshilliard.com/api/v1/get/mewweb-'];
+  const IST = 19800000, DAY = 86400000;
+  const days = [...Array(14)].map((_, i) => new Date(Date.now() + IST - (13 - i) * DAY).toISOString().slice(0, 10));   // oldest first, today last
+  const dayKey = d => 'd-' + d.replace(/-/g, '');
+  const groups = $$('.rows').map(ul => ({ ul, group: ul.dataset.group, names: ul.dataset.names.split(',').map(p => p.split(':')) }));
+  const KEYS = ['visits', 'visitors', ...days.map(dayKey).reverse(), 'ev-resume', 'ev-linkedin', 'ev-show', ...groups.flatMap(g => g.names.map(n => g.group + '-' + n[0]))];
+  const got = {};                                  // key -> [count on the first service, count on the second]; null where a service did not answer
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const fmt = n => n.toLocaleString('en-IN');
+  const count = k => { const a = got[k]; return !a || (a[0] == null && a[1] == null) ? null : (a[0] || 0) + (a[1] || 0); };
+
+  // a tally that was never written answers 404, which means zero; a busy or failing service is tried again, then given up on
+  async function read(base, key) {
+    for (let i = 0; i < 3; i++) {
+      try {
+        const r = await fetch(base + key, { cache: 'no-store' });
+        if (r.ok) return +(await r.json()).value || 0;
+        if (r.status === 404) return 0;
+      } catch (e) { /* offline or blocked: try again */ }
+      await wait(1600 * (i + 1));
+    }
+    return null;
+  }
+
+  // ---------- drawing ----------
+  const state = $('#state'), tip = $('#tip');
+  function draw() {
+    const day = days.map(d => count(dayKey(d))), known = day.filter(v => v != null);
+    const set = (k, v) => { const el = $(`[data-k="${k}"]`); if (el) el.textContent = v == null ? '–' : fmt(v); };
+    for (const k of ['visits', 'visitors', 'ev-resume', 'ev-linkedin']) set(k, count(k));
+    set('today', day[13]);
+    set('week', day.slice(7).some(v => v == null) ? null : day.slice(7).reduce((a, b) => a + b, 0));
+    $('#shows').textContent = count('ev-show') == null ? '–' : fmt(count('ev-show'));
+
+    // bars share one scale with a round top, so the grid lines land on whole numbers
+    const peak = Math.max(1, ...known), step = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000].find(s => peak / s <= 4) || 10000, top = Math.ceil(peak / step) * step;
+    $('#grid').innerHTML = [...Array(top / step + 1)].map((_, i) => `<i style="bottom:${i * step / top * 100}%"></i><b style="bottom:${i * step / top * 100}%;transform:translateY(50%)">${fmt(i * step)}</b>`).join('');
+    const bars = $('#bars');
+    if (!bars.children.length) {
+      bars.innerHTML = days.map((d, i) => `<div class="col${i === 13 ? ' now' : ''}" tabindex="0" role="img"><span style="height:0"></span></div>`).join('');
+      $('#days').innerHTML = days.map((d, i) => `<span>${i % 3 === 1 ? label(d, true) : ''}</span>`).join('');
+    }
+    [...bars.children].forEach((col, i) => {
+      const v = day[i];
+      col.firstChild.style.height = v ? Math.max(1.5, v / top * 100) + '%' : '0';
+      col.dataset.tip = `${label(days[i])} · ${v == null ? 'not loaded' : fmt(v) + (v === 1 ? ' visit' : ' visits')}`;
+      col.setAttribute('aria-label', col.dataset.tip);
+    });
+    $('#daytable').innerHTML = days.slice().reverse().map(d => `<tr><td>${label(d)}</td><td>${count(dayKey(d)) == null ? '–' : fmt(count(dayKey(d)))}</td></tr>`).join('');
+
+    for (const g of groups) {
+      const vals = g.names.map(n => count(g.group + '-' + n[0])), sum = vals.reduce((a, b) => a + (b || 0), 0);
+      g.ul.innerHTML = g.names.map((n, i) => ({ name: n[1], v: vals[i] })).sort((a, b) => (b.v || 0) - (a.v || 0)).map(r =>
+        `<li><span>${r.name}</span><span class="n">${r.v == null ? '–' : fmt(r.v)}</span><span class="p">${sum && r.v != null ? Math.round(r.v / sum * 100) + '%' : ''}</span><span class="t"><i style="width:${sum ? (r.v || 0) / sum * 100 : 0}%"></i></span></li>`).join('');
+    }
+  }
+  function label(d, short) {
+    const dt = new Date(d + 'T00:00:00Z');
+    return dt.toLocaleDateString('en-GB', short ? { day: 'numeric', month: 'short', timeZone: 'UTC' } : { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  }
+
+  // hover and keyboard focus show the exact number for a day
+  const show = e => {
+    const col = e.target.closest ? e.target.closest('.col') : null;
+    if (!col) return void tip.classList.remove('on');
+    const r = col.getBoundingClientRect(), bar = col.firstChild.getBoundingClientRect();
+    tip.textContent = col.dataset.tip; tip.style.left = r.left + r.width / 2 + 'px'; tip.style.top = Math.min(bar.top, r.bottom - 8) + 'px';
+    tip.classList.add('on');
+  };
+  $('#bars').addEventListener('pointermove', show);
+  $('#bars').addEventListener('pointerleave', () => tip.classList.remove('on'));
+  $('#bars').addEventListener('focusin', show);
+  $('#bars').addEventListener('focusout', () => tip.classList.remove('on'));
+
+  // ---------- loading: each service is asked one tally at a time, gently, and the page fills in as answers arrive ----------
+  let run = 0;
+  async function load() {
+    const mine = ++run, btn = $('#refresh');
+    btn.setAttribute('aria-busy', 'true'); state.textContent = 'Loading the counts';
+    for (const k of KEYS) got[k] = null;
+    draw();
+    const missed = [0, 0];
+    await Promise.all(SOURCES.map(async (base, s) => {
+      for (const k of KEYS) {
+        const v = await read(base, k);
+        if (mine !== run) return;
+        (got[k] = got[k] || [null, null])[s] = v;
+        if (v == null) missed[s]++;
+        draw();
+        await wait(300);              // gently: both services limit how often one browser may ask
+      }
+    }));
+    if (mine !== run) return;
+    btn.removeAttribute('aria-busy');
+    const at = new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+    state.textContent = missed[0] && missed[1] ? `Some counts did not load (${at}). Try Refresh.`
+      : missed[0] || missed[1] ? `Updated ${at}. One of the two counters did not answer, so numbers may be low.`
+      : `Updated ${at}`;
+  }
+  $('#refresh').addEventListener('click', load);
+
+  // ---------- your own visits: opening this page marks the browser, and the site then leaves it out ----------
+  const me = $('#me'), mineText = $('#mine');
+  let store = null;
+  try { store = localStorage; if (store.getItem('mw-count-me') !== '1') store.setItem('mw-owner', '1'); } catch (e) { /* storage blocked */ }
+  const paint = () => {
+    const skipped = store && store.getItem('mw-owner');
+    mineText.textContent = !store ? 'This browser blocks site storage, so your own visits are counted like anyone else\'s.'
+      : skipped ? 'Opening this page marked this browser as yours, so your own visits from it are left out of the counts.'
+      : 'Visits from this browser are being counted like anyone else\'s.';
+    me.textContent = skipped ? 'Count my visits too' : 'Leave my visits out';
+    me.hidden = !store;
+  };
+  me.addEventListener('click', () => {
+    if (store.getItem('mw-owner')) { store.removeItem('mw-owner'); store.setItem('mw-count-me', '1'); } else { store.setItem('mw-owner', '1'); store.removeItem('mw-count-me'); }
+    paint();
+  });
+  paint();
+  load();
+})();
+</script>
+</body>
+</html>
