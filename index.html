@@ -9,7 +9,8 @@
 <style>
 /* Layout: four screens on one 12-column wrap with equal left and right edges.
    Hero, research, path, closing garden. Behind them sits a fixed night scene:
-   sky, a glow on the horizon, hills, vines and drifting petals. Ink follows the
+   sky, a glow on the horizon, hills, vines and drifting petals. The hero has
+   its own film, fireworks over a forest, above a sea the page draws. Ink follows the
    pointer underneath the cards; fireworks and fireflies draw above them. The
    accent (--acc) is set by script to the colour of the last firework, and the
    hero flower matches it. The résumé opens as one sheet over the page.
@@ -67,17 +68,28 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
     radial-gradient(95% 42% at 50% 100%, color-mix(in srgb, var(--acc) 20%, transparent), transparent 72%),
     radial-gradient(44% 36% at 92% 10%, color-mix(in srgb, var(--acc) 7%, transparent), transparent 72%);
 }
-#film {                               /* the hero's film: fireworks over a shrine gate. It scrolls away with the hero and fades out before the research section */
+/* The hero's film: fireworks over a dark forest, looping. Below the waterline (--sea) the page draws its own sea:
+   dark water here, and on the flower's canvas the mirror image of the film and of the flower. The film scrolls
+   away with the hero and fades out before the research section. */
+#film {
+  --sea: 66%;
   position: absolute; left: 0; top: 0; width: 100%; height: max(100svh, 620px); z-index: 0; overflow: hidden; pointer-events: none;
-  -webkit-mask-image: linear-gradient(#000 74%, transparent); mask-image: linear-gradient(#000 74%, transparent);
+  background: linear-gradient(transparent var(--sea), #04070d var(--sea), #010204);
+  -webkit-mask-image: linear-gradient(#000 86%, transparent); mask-image: linear-gradient(#000 86%, transparent);
 }
-#film video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 50%; }
-#film video + video { opacity: 0; transition: opacity 1.4s linear; }
+.film__sky { position: absolute; left: 0; top: 0; width: 100%; height: var(--sea); overflow: hidden; }
+.film__sky video {                    /* shown a fifth larger, from its top edge: that brings the fireworks down toward the water */
+  position: absolute; left: 0; top: 0; width: 100%; height: calc(max(100svh, 620px) * 1.2); object-fit: cover; object-position: 70% 0;
+}
+.film__sky video + video { opacity: 0; transition: opacity 1.4s linear; }
+.film__sky::after {                   /* haze where the forest meets the water */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34px; background: linear-gradient(transparent, rgba(4, 7, 13, .92));
+}
 #film::after {                        /* shade for the words: the left side, and the strip under the nav */
   content: ""; position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(0, 0, 0, .8), rgba(0, 0, 0, .52) 32%, transparent 60%), linear-gradient(rgba(0, 0, 0, .6), transparent 20%);
+  background: linear-gradient(90deg, rgba(0, 0, 0, .78), rgba(0, 0, 0, .5) 32%, transparent 60%), linear-gradient(rgba(0, 0, 0, .6), transparent 20%);
 }
-@media (max-width: 719px) { #film::after { background: linear-gradient(rgba(0, 0, 0, .84), rgba(0, 0, 0, .62) 46%, transparent 66%); } }
+@media (max-width: 719px) { #film::after { background: linear-gradient(rgba(0, 0, 0, .84), rgba(0, 0, 0, .6) 42%, transparent 60%); } }
 #ink { z-index: 1; }
 #light { z-index: 6; }
 main, .closing { position: relative; z-index: 2; }
@@ -435,6 +447,12 @@ html.still [data-motion] { display: none; }
 <a class="skip" href="#research">Skip to the research</a>
 <canvas id="stars" aria-hidden="true"></canvas>
 <div id="glow" aria-hidden="true"></div>
+<div id="film" aria-hidden="true">
+  <div class="film__sky">
+    <video muted playsinline preload="none" poster="media/hero.jpg" src="media/hero.mp4"></video>
+    <video muted playsinline preload="none" src="media/hero.mp4"></video>
+  </div>
+</div>
 <canvas id="flora" aria-hidden="true"></canvas>
 <canvas id="ink" aria-hidden="true"></canvas>
 
@@ -925,7 +943,7 @@ html.still [data-motion] { display: none; }
   // One fixed canvas behind the page. Plants are pinned to the page but scroll a little slower than it (SLOW), because
   // they stand behind it. Stems grow tip-first; leaves and blossoms open as the tip passes them. Buds open when the
   // pointer comes near or a firework bursts beside them.
-  const flora = $('#flora'), fc = flora.getContext('2d'), SLOW = .9, STEP = 12;
+  const flora = $('#flora'), fc = flora.getContext('2d'), SLOW = .9, STEP = 12, filmEl = $('#film');
   let fw = 0, fdpr = 1, plants = [], drift = [], hills = null, hillH = 0, shooting = null, shootAt = 3500, lastScroll = 0;
 
   function drawHills() {                             // two ridges and a line of trees, drawn once per size
@@ -1031,13 +1049,15 @@ html.still [data-motion] { display: none; }
   function drawFlora(dt, still) {
     const g = fc, sy = scrollY, off = sy * SLOW, slip = sy - lastScroll, tint = `rgb(${tinted()})`, th = THEMES[theme], span = H + 48;
     lastScroll = sy;
+    const veil = filmEl.offsetHeight * .88 - sy;      // on screen the hero's film reaches down to here; it has its own sky, so ours stays off it
     g.setTransform(fdpr, 0, 0, fdpr, 0, 0); g.clearRect(0, 0, fw, H);
     for (const s of twinklers) {                     // the brighter stars twinkle
       const a = still ? .8 : .3 + .7 * (.5 + .5 * Math.sin(T * s.rate + s.ph)), x = s.x * fw, y = s.y * H, rad = s.r * 5;
+      if (y < veil) continue;
       g.globalAlpha = a; g.drawImage(twinkle(), x - rad, y - rad, rad * 2, rad * 2);
       if (s.r > 2.4) { g.globalAlpha = a * .5; g.fillStyle = '#dfe8ff'; g.fillRect(x - rad * 1.5, y - .4, rad * 3, .8); g.fillRect(x - .4, y - rad * 1.5, .8, rad * 3); }
     }
-    if (!still && !shooting && T > shootAt) {        // now and then, a shooting star
+    if (!still && !shooting && T > shootAt && veil < H * .2) {        // now and then, a shooting star
       const left = Math.random() < .5;
       shooting = { x: rand(.15, .85) * fw, y: rand(.05, .34) * H, a: left ? rand(2.5, 2.85) : rand(.3, .65), len: rand(170, 320), t0: T, dur: rand(620, 900) };
     }
@@ -1052,8 +1072,9 @@ html.still [data-motion] { display: none; }
         g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
       }
     }
+    g.globalAlpha = clamp((H - hillH - veil) / 140, 0, 1);
+    if (hills && g.globalAlpha > 0) g.drawImage(hills, 0, H - hillH, fw, hillH);
     g.globalAlpha = 1;
-    if (hills) g.drawImage(hills, 0, H - hillH, fw, hillH);
 
     g.fillStyle = tint;                              // petals on the wind, in the colour of the last firework
     for (const p of drift) {
@@ -1322,9 +1343,15 @@ html.still [data-motion] { display: none; }
     const gl = canvas.getContext('webgl', { alpha: true, antialias: false, depth: true, premultipliedAlpha: true });
     if (!gl) return null;
     const STR = 19, RISE = 850, phone = innerWidth < 720, N = phone ? 28000 : 56000;
+    // Ripples: fine and quick far off (near the waterline), broad and slow close by. Both shaders share them,
+    // so the film's reflection and the flower's move as one surface.
+    const WAVE = `uniform float uSea, uClock;
+      float wave(float x, float h, float dn) { float k = mix(90., 22., dn);
+        return .5 * sin(h * k * 3. + uClock * 1.1 + x * 6.) + .5 * sin(h * k * 1.3 - uClock * .7 + x * 17.); }`;
     const VS = `attribute vec3 aOpen, aBud, aNrm, aCol, aMisc; attribute vec4 aDir;
-      uniform float uT, uGone, uRot, uTilt, uAsp, uS, uPx; uniform vec2 uC, uPtr; uniform vec3 uSpark;
-      varying vec4 vCol; varying float vM;
+      uniform float uT, uGone, uRot, uTilt, uAsp, uS, uPx, uFlip; uniform vec2 uC, uPtr; uniform vec3 uSpark;
+      varying vec4 vCol; varying float vM, vUp, vDim;
+      ${WAVE}
       const float RISE = .85;
       vec3 view(vec3 p) {                             // model (z up) to view (x right, y up, z toward the viewer)
         float c = cos(uRot), s = sin(uRot), ct = cos(uTilt), st = sin(uTilt);
@@ -1347,6 +1374,12 @@ html.still [data-motion] { display: none; }
         vec2 ndc = uC + vec2(p.x / uAsp, p.y) * uS / w;
         vec2 d = (ndc - uPtr) * vec2(uAsp, 1.); float l = length(d);
         if (l < .22) ndc += d / (l + .001) * pow(1. - l / .22, 2.) * .05 * m * (1. - go) / vec2(uAsp, 1.);
+        vUp = ndc.y - uSea; vDim = 1.;                                // height above the water: under it, nothing shows
+        if (uFlip > .5) {                                             // the same point again, mirrored in the water
+          float dn = clamp(vUp / (uSea + 1.), 0., 1.), wob = wave(ndc.x, vUp, dn);
+          ndc = vec2(ndc.x - wob * (.004 + .02 * dn), uSea - vUp);
+          vDim = (1. - .7 * dn) * (.5 + .22 * wob) * (1. - smoothstep(.78, 1., dn));
+        }
         gl_Position = vec4(ndc, clamp(-p.z * .18, -1., 1.), 1.);
         float flick = .65 + .35 * sin(uT * 38. + seed * 60.);
         vec3 hot = mix(vec3(1., .95, .8), mix(vec3(1., .8, .45), uSpark, smoothstep(.15, 1., tb)), smoothstep(0., .3, tb));
@@ -1359,10 +1392,10 @@ html.still [data-motion] { display: none; }
         vM = mm;
         gl_PointSize = uPx * mix(1.4 + 2.4 * seed, 2.9 + 1.3 * seed, mm) / w;
       }`;
-    const FS = `precision mediump float; varying vec4 vCol; varying float vM;
-      void main() { vec2 q = gl_PointCoord - .5; float d = dot(q, q); if (d > .25) discard;
+    const FS = `precision mediump float; varying vec4 vCol; varying float vM, vUp, vDim;
+      void main() { vec2 q = gl_PointCoord - .5; float d = dot(q, q); if (d > .25 || vUp < 0.) discard;
         float soft = 1. - d * 4.;                     // sparks glow and add up; petals are solid discs
-        gl_FragColor = vec4(vCol.rgb * mix(soft * soft, .8 + .2 * soft, vM) * vCol.a, vM * vCol.a); }`;
+        gl_FragColor = vec4(vCol.rgb * mix(soft * soft, .8 + .2 * soft, vM) * vCol.a, vM * vCol.a) * vDim; }`;
     const sh = (t, src) => { const x = gl.createShader(t); gl.shaderSource(x, src); gl.compileShader(x); return x; };
     const pr = gl.createProgram();
     gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr);
@@ -1371,8 +1404,35 @@ html.still [data-motion] { display: none; }
     const ATTR = [['aOpen', 3], ['aBud', 3], ['aNrm', 3], ['aCol', 3], ['aDir', 4], ['aMisc', 3]].map(([name, size]) => ({ loc: gl.getAttribLocation(pr, name), size }));
     for (const a of ATTR) gl.enableVertexAttribArray(a.loc);
     const U = {};
-    for (const u of ['uT', 'uGone', 'uRot', 'uTilt', 'uAsp', 'uS', 'uPx', 'uC', 'uPtr', 'uSpark']) U[u] = gl.getUniformLocation(pr, u);
+    for (const u of ['uT', 'uGone', 'uRot', 'uTilt', 'uAsp', 'uS', 'uPx', 'uC', 'uPtr', 'uSpark', 'uSea', 'uClock', 'uFlip']) U[u] = gl.getUniformLocation(pr, u);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthFunc(gl.LEQUAL);
+
+    // the sea: whatever the film shows above the waterline, mirrored and rippling, added to the dark water as light
+    const wp = gl.createProgram();
+    gl.attachShader(wp, sh(gl.VERTEX_SHADER, `attribute vec2 aQ; uniform mediump float uSea; varying vec2 vP;
+      void main() { vP = vec2(aQ.x, mix(-1., uSea, aQ.y)); gl_Position = vec4(vP, 0., 1.); }`));
+    gl.attachShader(wp, sh(gl.FRAGMENT_SHADER, `precision mediump float; ${WAVE} varying vec2 vP; uniform sampler2D uA, uB; uniform float uMix; uniform vec4 uFit;
+      void main() {
+        float h = uSea - vP.y, dn = clamp(h / (uSea + 1.), 0., 1.), wob = wave(vP.x, h, dn);
+        vec2 hero = vec2((vP.x + wob * (.004 + .02 * dn)) * .5 + .5, .5 - (uSea + h * (1. + .06 * wob)) * .5);   // the point above the water that shows here
+        vec2 uv = hero * uFit.xy + uFit.zw;
+        vec3 c = mix(texture2D(uA, uv).rgb, texture2D(uB, uv).rgb, uMix);
+        float glint = smoothstep(.55, 1., sin(h * mix(90., 22., dn) * 2.2 - uClock * .6 + vP.x * 3.)) * (1. - .6 * dn);   // faint light on the swell
+        gl_FragColor = vec4((c * (1. - .7 * dn) * (.62 + .24 * wob) + vec3(.012, .02, .034) * glint) * (1. - smoothstep(.78, 1., dn)), 0.);
+      }`));
+    gl.bindAttribLocation(wp, 0, 'aQ'); gl.linkProgram(wp);
+    if (!gl.getProgramParameter(wp, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(wp));
+    const WU = {};
+    for (const u of ['uSea', 'uClock', 'uMix', 'uFit', 'uA', 'uB']) WU[u] = gl.getUniformLocation(wp, u);
+    const quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 0, 1, 0, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const reel = [0, 1].map(i => {                   // the film's two reels, as textures
+      const tex = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, tex);
+      for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array(3));
+      return { tex, from: null, at: -1 };
+    });
 
     // flowers are built off the main thread where a worker is allowed, so a launch never stalls the page
     const clouds = [], waiting = {};
@@ -1399,16 +1459,18 @@ html.still [data-motion] { display: none; }
       worker.postMessage({ i, name: THEMES[i].flower, n: N, phone });
     });
 
-    let cur = null, prev = null, cx, cy, S, asp, px;
+    let cur = null, prev = null, cx, cy, S, asp, px, sea = .66;
     const show = (i, t0) => { if (cur) prev = { i: cur.i, t0: cur.t0, goneAt: t0 + RISE }; cur = { i, t0 }; };
-    function resize(top, bottom) {                   // top, bottom: the free band between the words and the facts, in px
+    // top, bottom: the free band between the words and the facts, in px. seaAt: the waterline, as a share of the height.
+    // The flower stands just above the water, so that its reflection lies right under it.
+    function resize(top, bottom, seaAt) {
       const r = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 1.75);
       canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
-      asp = r.width / r.height;
+      asp = r.width / r.height; sea = seaAt;
       if (r.width < 720) {
-        const radius = Math.max(48, Math.min((bottom - top) * .43, r.width * .3));
-        cx = 0; cy = 1 - 2 * (top + (bottom - top) * .46) / r.height; S = radius / (r.height / 2);
-      } else { cx = .44; cy = .04; S = Math.min(.46, .36 * asp); }
+        const floor = Math.min(bottom, sea * r.height), radius = Math.max(48, Math.min((floor - top) * .46, r.width * .3));
+        cx = 0; cy = 1 - 2 * (floor - radius) / r.height; S = radius / (r.height / 2);
+      } else { cx = .44; S = Math.min(.46, .36 * asp); cy = 1 - 2 * sea + S; }
       px = dpr * clamp(S * r.height / 396, .75, 1.6);
     }
     const one = (o, now, gone, parX, parY) => {
@@ -1422,13 +1484,35 @@ html.still [data-motion] { display: none; }
       gl.uniform3fv(U.uSpark, th.spark);
       gl.drawArrays(gl.POINTS, 0, cl.n);
     };
-    function draw(now, ptrX, ptrY, parX, parY) {      // now: scene clock in ms; ptr: pointer in clip space
+    // now: scene clock in ms; ptr: pointer in clip space; film: { src: the two reels (video or still), mix, fit } from filmLook()
+    function draw(now, ptrX, ptrY, parX, parY, film) {
+      const line = 1 - 2 * sea, clock = now / 1000 % (20 * Math.PI);   // the waves repeat every 20 pi seconds, which keeps the numbers small for phone GPUs
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      for (const a of ATTR) gl.disableVertexAttribArray(a.loc);       // first the film's reflection, across the whole sea
+      gl.useProgram(wp); gl.disable(gl.DEPTH_TEST);
+      gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      reel.forEach((rl, i) => {
+        const from = film.src[i], at = from && from.tagName === 'VIDEO' ? from.currentTime : 0;
+        gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, rl.tex);
+        if (from && (rl.from !== from || rl.at !== at)) try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, from); rl.from = from; rl.at = at; } catch (e) { /* frame not ready: keep the last one */ }
+      });
+      gl.uniform1i(WU.uA, 0); gl.uniform1i(WU.uB, 1); gl.uniform1f(WU.uMix, film.mix); gl.uniform4fv(WU.uFit, film.fit);
+      gl.uniform1f(WU.uSea, line); gl.uniform1f(WU.uClock, clock);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.disableVertexAttribArray(0);
+      for (const a of ATTR) gl.enableVertexAttribArray(a.loc);
+      gl.useProgram(pr);
       gl.uniform1f(U.uAsp, asp); gl.uniform1f(U.uS, S); gl.uniform1f(U.uPx, px);
       gl.uniform2f(U.uC, cx, cy); gl.uniform2f(U.uPtr, ptrX, ptrY);
-      if (prev) { const g = (now - prev.goneAt) / 1000; if (g > 2.4) prev = null; else one(prev, now, g, parX, parY); }
-      if (cur) one(cur, now, -1, parX, parY);
+      gl.uniform1f(U.uSea, line); gl.uniform1f(U.uClock, clock);
+      const g = prev ? (now - prev.goneAt) / 1000 : 0;
+      if (g > 2.4) prev = null;
+      for (const flip of [1, 0]) {                    // the reflection, then the flower itself
+        gl.uniform1f(U.uFlip, flip);
+        if (prev) one(prev, now, g, parX, parY);
+        if (cur) one(cur, now, -1, parX, parY);
+      }
     }
     return { ready, show, resize, draw, at: () => [(cx + 1) / 2, (cy + 1) / 2] };
   }
@@ -1438,8 +1522,18 @@ html.still [data-motion] { display: none; }
   const sizeGarden = () => {
     if (!garden) return;
     const top = roseEl.getBoundingClientRect().top;
-    garden.resize($('.hero__text').getBoundingClientRect().bottom - top, $('.hero__foot').getBoundingClientRect().top - top);
+    garden.resize($('.hero__text').getBoundingClientRect().bottom - top, $('.hero__foot').getBoundingClientRect().top - top, $('.film__sky').offsetHeight / filmEl.offsetHeight);
   };
+
+  // ================= film: the hero's video, and what the sea needs to mirror it =================
+  const reels = $$('video', filmEl), poster = new Image();
+  poster.src = reels[0].poster;
+  const frameOf = v => v.readyState >= 2 ? v : poster.complete && poster.naturalWidth ? poster : null;      // a reel, or the still until it has loaded
+  function filmLook() {     // both reels, how far the upper one has faded in, and where a point of the hero falls in the film's frame
+    const r = filmEl.getBoundingClientRect(), v = reels[0], box = v.getBoundingClientRect(), vw = v.videoWidth || poster.naturalWidth || 16, vh = v.videoHeight || poster.naturalHeight || 9;
+    const k = Math.max(box.width / vw, box.height / vh), dw = vw * k, dh = vh * k;       // object-fit: cover, object-position: 70% 0
+    return { src: reels.map(frameOf), mix: +getComputedStyle(reels[1]).opacity, fit: [r.width / dw, r.height / dh, (dw - box.width) * .7 / dw, 0] };
+  }
 
   // reduced motion: a still page with one flower already open, native cursor, nothing below this line runs
   if (reduced) {
@@ -1449,8 +1543,9 @@ html.still [data-motion] { display: none; }
       if (innerWidth < 2 || innerHeight < 2) return;
       W = innerWidth; H = innerHeight; drawSky(); seedLand(); grow = 1; drawLand(0); lightWords(); fitBars();
       sizeGarden(); sizeFlora(true); drawFlora(0, true);
-      if (garden) Promise.resolve().then(() => garden.draw(0, 9, 9, 0, 0));
+      if (garden) Promise.resolve().then(() => garden.draw(0, 9, 9, 0, 0, filmLook()));
     };
+    poster.addEventListener('load', () => still());   // the still film is only a poster here; mirror it once it has arrived
     addEventListener('resize', still);
     addEventListener('scroll', () => drawFlora(0, true), { passive: true });    // the plants are drawn on a fixed canvas, so they follow the scroll by hand
     still();
@@ -1824,6 +1919,26 @@ html.still [data-motion] { display: none; }
     pauseBtn.textContent = paused ? 'Play motion' : 'Pause motion';
   });
 
+  // The film loops without a cut: near the end of one reel the other starts from the top, and the upper one fades.
+  // It rests while motion is paused, while the résumé is open, in a hidden tab and once the hero has scrolled away.
+  const FADE = 1.4, saver = navigator.connection && navigator.connection.saveData;
+  let filmRuns = false;
+  reels[0].on = true;
+  function filmTick() {
+    const run = !saver && !paused && !held && !document.hidden && onScreen(filmEl);
+    if (run !== filmRuns) {
+      filmRuns = run;
+      for (const v of reels) { if (!run) { v.on = !v.paused && !v.ended; v.pause(); } else if (v.on) v.play().catch(() => {}); }
+    }
+    if (!run) return;
+    const [a, b] = reels, upper = b.style.opacity === '1', now = upper ? b : a, next = upper ? a : b;
+    if (now.duration && now.currentTime > now.duration - FADE && (next.paused || next.currentTime > FADE * 2)) {
+      next.currentTime = 0; next.play().catch(() => {});
+      b.style.opacity = upper ? '0' : '1';
+    }
+  }
+  document.addEventListener('visibilitychange', filmTick);
+
   // ================= loop =================
   const pipeSvg = $('.pipeline svg');
   const onScreen = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < H; };
@@ -1844,11 +1959,12 @@ html.still [data-motion] { display: none; }
     const px = mouse.seen ? (mouse.x - r.left) / r.width * 2 - 1 : 9, py = mouse.seen ? 1 - (mouse.y - r.top) / r.height * 2 : 9;
     parX += ((mouse.seen ? clamp(px, -1, 1) : 0) - parX) * Math.min(1, .05 * dt);
     parY += ((mouse.seen ? clamp(py, -1, 1) : 0) - parY) * Math.min(1, .05 * dt);
-    garden.draw(T, px, py, parX, parY);
+    garden.draw(T, px, py, parX, parY, filmLook());
   }
   function frame(now) {
     const dt = Math.min(now - last, 50) / 16.7;
     last = now;
+    filmTick();
     if (!paused && !held) {
       T += dt * 16.7;
       for (let i = queue.length - 1; i >= 0; i--) if (queue[i].at <= T) queue.splice(i, 1)[0].fn();
